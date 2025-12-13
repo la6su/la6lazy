@@ -1,4 +1,4 @@
-import { startPreloader } from "./preloader/preloader.js";
+import {  showLoader, hideLoader, startPreloader } from "./preloader/preloader.js";
 
 const canvas = document.getElementById("canvas");
 const btn = document.getElementById("nextSlide");
@@ -9,7 +9,7 @@ btn.addEventListener("click", async () => {
 
     btn.style.display = "none";
     preload.stop();
-
+    showLoader();
     // очищаем canvas (WebGL reset)
     const container = document.getElementById("canvas-wrapper");
 
@@ -37,5 +37,6 @@ btn.addEventListener("click", async () => {
         canvas: canvas,
     }));
 
+    hideLoader();
 
 });
