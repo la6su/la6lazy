@@ -25,13 +25,31 @@ export function createGLPreloader(canvas) {
 
     // ---------- FRAGMENT ----------
     const fsSrc = `#version 300 es
-    precision highp float;
-    out vec4 outColor;
-    uniform float uProgress;
+    float p = uProgress;
 
-    void main(){
-        float v = abs(sin(uProgress));
-        outColor = vec4(0.0, v, 1.0, 1.0);
+    // UV from center
+    vec2 uv = vUv - 0.5;
+    
+    // Phase ranges
+    float linePhase   = smoothstep(0.0, 0.25, p);
+    float expandPhase = smoothstep(0.25, 0.6, p);
+    float fillPhase   = smoothstep(0.6, 1.0, p);
+    
+    // Horizontal line → band
+    float band = smoothstep(0.01 + expandPhase * 0.5, 0.0, abs(uv.y));
+    
+    // Circular spread
+    float circle = smoothstep(expandPhase, expandPhase - 0.01, length(uv));
+    
+    // Combine geometry
+    float mask = max(band * linePhase, circle);
+    
+    // Fill screen
+    mask = mix(mask, 1.0, fillPhase);
+    
+    // CRT color
+    vec3 col = vec3(mask) * vec3(0.9, 1.0, 0.95);
+
     }`;
 
     // ---------- Compile ----------
