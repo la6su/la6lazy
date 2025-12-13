@@ -27,10 +27,10 @@ export function createGLPreloader(canvas) {
     const fsSrc = `#version 300 es
     precision highp float;
     out vec4 outColor;
-    uniform float uTime;
+    uniform float uProgress;
 
     void main(){
-        float v = abs(sin(uTime));
+        float v = abs(sin(uProgress));
         outColor = vec4(0.0, v, 1.0, 1.0);
     }`;
 
@@ -66,16 +66,18 @@ export function createGLPreloader(canvas) {
 
     gl.useProgram(program);
 
-    const uTime = gl.getUniformLocation(program, "uTime");
+    // const uTime = gl.getUniformLocation(program, "uTime");
+    const uProgress = gl.getUniformLocation(program, 'uProgress');
 
+    let progress = 0.0;
     let stopped = false;
-    let start = performance.now();
+    //let start = performance.now();
 
     function frame() {
         if (stopped) return;
 
-        let t = (performance.now() - start) * 0.001;
-        gl.uniform1f(uTime, t);
+        // let t = (performance.now() - start) * 0.001;
+        gl.uniform1f(uProgress, progress);
 
         gl.drawArrays(gl.TRIANGLES, 0, 3);
         requestAnimationFrame(frame);
@@ -84,6 +86,11 @@ export function createGLPreloader(canvas) {
     frame();
 
     return {
-        stop() { stopped = true; }
+        setProgress(value) {
+            progress = Math.min(1, Math.max(0, value));
+        },
+        stop() {
+            stopped = true;
+        }
     };
 }
