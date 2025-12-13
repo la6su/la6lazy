@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ORE v5 Lazy Example</title>
+    <style>
+        body, html {
+            padding: 0;
+            margin: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: gray;
+        }
+        #loader {
+            position:absolute;
+            inset:0;
+            display:flex;
+            justify-content:center;
+            align-items:center;
+        }
+
+        #canvas {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            left: 0;
+            top: 0;
+            z-index: 0;
+        }
+        #canvas-wrapper {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+        #nextSlide {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 10px 20px;
+            background: white;
+            color: black;
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: pointer;
+            z-index: 10;
+
+        }
+    </style>
+</head>
+<body>
+<div id="loader">
+    <svg width="60" height="60" viewBox="0 0 100 100">
+        <circle cx="50" cy="50" r="40" stroke="white" stroke-width="8" fill="none" stroke-linecap="round">
+            <animateTransform attributeName="transform" type="rotate" dur="1s" repeatCount="indefinite" from="0 50 50" to="360 50 50" />
+        </circle>
+    </svg>
+</div>
+<div id="canvas-wrapper">
+    <canvas id="canvas"></canvas>
+</div>
+<button id="nextSlide">NEXT SLIDE</button>
+
+<script type="module" src="/src/main.js"></script>
+</body>
+</html>
