@@ -25,49 +25,68 @@ export function createGLPreloader(canvas) {
 
   // ---------- FRAGMENT ----------
   const fsSrc = `#version 300 es
-precision highp float;
+    precision highp float;
+    
+    uniform float uMode;
+    // 0.0 = CRT power-on
+    // 1.0 = scanline loader
+    
+    out vec4 outColor;
+    
+    uniform vec2  uResolution;
+    uniform float uProgress; // 0 = off, 1 = fully on
+    
+    float uv2TVHoleShape(vec2 uv, vec2 scale)
+    {
+        uv = uv * 2.0 - 1.0;
+        uv = abs(uv);
+        uv *= scale;
+    
+        float y = smoothstep(1.0, 0.0, uv.x);
+    
+        // distance to the ideal hard edge
+        float d = uv.y - y;
+    
+        // anti-alias using fwidth
+        float edge = fwidth(d) * 1.0; // tweak multiplier for softness
+        return smoothstep(edge, -edge, d);
+    }
+    
+    float uv2TopBottomBlack(vec2 uv, float amount01)
+    {
+        uv.y = uv.y * 2.0 - 1.0;
+        uv.y = abs(uv.y);
+    
+        float edgeVal = 1.0 - amount01;
+        float d = uv.y - edgeVal;
+    
+        float edge = fwidth(d) * 1.0;
+        return smoothstep(edge, -edge, d);
+    }
+    
+    float hLine(vec2 uv, float y, float thickness) {
+        float d = abs(uv.y - y);
+        float aa = fwidth(d);
+        return smoothstep(thickness + aa, thickness - aa, d);
+    }
 
-out vec4 outColor;
-
-uniform vec2  uResolution;
-uniform float uProgress; // 0 = off, 1 = fully on
-
-float uv2TVHoleShape(vec2 uv, vec2 scale)
-{
-    uv = uv * 2.0 - 1.0;
-    uv = abs(uv);
-    uv *= scale;
-
-    float y = smoothstep(1.0, 0.0, uv.x);
-
-    // distance to the ideal hard edge
-    float d = uv.y - y;
-
-    // anti-alias using fwidth
-    float edge = fwidth(d) * 1.0; // tweak multiplier for softness
-    return smoothstep(edge, -edge, d);
-}
-
-float uv2TopBottomBlack(vec2 uv, float amount01)
-{
-    uv.y = uv.y * 2.0 - 1.0;
-    uv.y = abs(uv.y);
-
-    float edgeVal = 1.0 - amount01;
-    float d = uv.y - edgeVal;
-
-    float edge = fwidth(d) * 1.0;
-    return smoothstep(edge, -edge, d);
-}
-
-void main() {
+    float vignette(vec2 uv) {
+        uv = uv * 2.0 - 1.0;
+        float v = dot(uv, uv);
+        return smoothstep(1.2, 0.4, v);
+    }
+    
+    void main() {
     vec2 uv = gl_FragCoord.xy / uResolution;
 
-    // base green-ish color (or replace with your texture)
-    vec3 col = vec3(1.0, 1.0, 1.0);
+    float p = clamp(uProgress, 0.0, 1.0);
+    vec3 col = vec3(1.0);
 
-    // use linear progress, 0 -> 1
-    float param01 = 1.0 - clamp(uProgress, 0.0, 1.0);
+    // =========================
+    // CRT BOOT MASK (ТВОЙ КОД)
+    // =========================
+
+    float param01 = 1.0 - p;
 
     float cutPoint = 0.5;
     float blendRange = 0.2;
@@ -76,12 +95,10 @@ void main() {
     float topBlack;
     float holeMask;
 
-    // -------- TOP/BOTTOM MASK --------
     anim01 = param01 / cutPoint;
     anim01 = anim01 * anim01 * anim01 / 1.05;
     topBlack = uv2TopBottomBlack(uv, anim01);
 
-    // -------- TV HOLE MASK --------
     anim01 = (param01 - cutPoint) / (1.0 - cutPoint);
     anim01 = max(anim01, 0.0);
 
@@ -90,10 +107,38 @@ void main() {
     holeMask = uv2TVHoleShape(uv, vec2(x, y));
 
     float mixT = smoothstep(cutPoint - blendRange, cutPoint + blendRange, param01);
-    float mask = mix(topBlack, holeMask, mixT);
+    float crtMask = mix(topBlack, holeMask, mixT);
+
+    // =========================
+    // SCANLINE LOADER MASK
+    // =========================
+
+    float thickness = mix(0.002, 0.08, pow(p, 0.7));
+
+
+    float d1 = abs(uv.y - (0.5));
+    float aa1 = fwidth(d1);
+    float l1 = smoothstep(thickness + aa1, thickness - aa1, d1);
+
+    float d2 = abs(uv.y - 0.52);
+    float aa2 = fwidth(d2);
+    float l2 = smoothstep(thickness * 0.6 + aa2, thickness * 0.6 - aa2, d2);
+
+    float d3 = abs(uv.y - 0.48);
+    float aa3 = fwidth(d3);
+    float l3 = smoothstep(thickness * 0.4 + aa3, thickness * 0.4 - aa3, d3);
+
+    float scanMask = max(l1, max(l2, l3));
+
+    // =========================
+    // MODE MIX (КЛЮЧЕВОЕ)
+    // =========================
+
+    float mask = mix(crtMask, scanMask, step(0.5, uMode));
 
     outColor = vec4(col * mask, 1.0);
 }
+
 `;
 
   // ---------- Compile ----------
@@ -131,8 +176,10 @@ void main() {
   // const uTime = gl.getUniformLocation(program, "uTime");
   const uProgress = gl.getUniformLocation(program, 'uProgress');
   const uResolution = gl.getUniformLocation(program, 'uResolution');
+  const uMode = gl.getUniformLocation(program, 'uMode');
   let progress = 0.0;
   let stopped = false;
+  let mode = 0;
   //let start = performance.now();
 
   function frame() {
@@ -141,6 +188,7 @@ void main() {
     // let t = (performance.now() - start) * 0.001;
     gl.uniform1f(uProgress, progress);
     gl.uniform2f(uResolution, canvas.width, canvas.height);
+    gl.uniform1f(uMode, mode);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
     requestAnimationFrame(frame);
   }
@@ -150,6 +198,9 @@ void main() {
   return {
     setProgress(value) {
       progress = Math.min(1, Math.max(0, value));
+    },
+    setMode(value) {
+      mode = value;
     },
     stop() {
       stopped = true;
