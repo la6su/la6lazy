@@ -34,7 +34,8 @@ export function createGLPreloader(canvas) {
     out vec4 outColor;
     
     uniform vec2  uResolution;
-    uniform float uProgress; // 0 = off, 1 = fully on
+    uniform float uScanlinePhase; // unlock gesture
+    uniform float uProgress;      // real loading
     
     float uv2TVHoleShape(vec2 uv, vec2 scale)
     {
@@ -112,8 +113,10 @@ export function createGLPreloader(canvas) {
     // =========================
     // SCANLINE LOADER MASK
     // =========================
-
-    float thickness = mix(0.002, 0.08, pow(p, 0.7));
+    float phase = pow(uScanlinePhase, 1.4);
+    float thickness = mix(0.01, 0.3, phase);
+    float glow      = smoothstep(0.0, 1.0, uProgress);
+    vec3 color      = mix(vec3(0.2,0.8,0.3), vec3(0.0,1.0,0.6), glow);
 
 
     float d1 = abs(uv.y - (0.5));
@@ -134,9 +137,19 @@ export function createGLPreloader(canvas) {
     // MODE MIX (КЛЮЧЕВОЕ)
     // =========================
 
-    float mask = mix(crtMask, scanMask, step(0.5, uMode));
+    float isScanline = step(0.5, uMode);
+    float mask;
 
-    outColor = vec4(col * mask, 1.0);
+    if (uMode < 0.5) {
+        // CRT BOOT
+        mask = crtMask;
+    } else {
+        // SCANLINE
+        mask = scanMask;
+    }
+    
+    vec3 finalColor = mix(col, color, step(0.5, uMode));
+    outColor = vec4(finalColor * mask, 1.0);
 }
 
 `;
@@ -175,9 +188,11 @@ export function createGLPreloader(canvas) {
 
   // const uTime = gl.getUniformLocation(program, "uTime");
   const uProgress = gl.getUniformLocation(program, 'uProgress');
+  const uScanlinePhase = gl.getUniformLocation(program, 'uScanlinePhase');
   const uResolution = gl.getUniformLocation(program, 'uResolution');
   const uMode = gl.getUniformLocation(program, 'uMode');
   let progress = 0.0;
+  let scanlinePhase = 0.0;
   let stopped = false;
   let mode = 0;
   //let start = performance.now();
@@ -187,6 +202,7 @@ export function createGLPreloader(canvas) {
 
     // let t = (performance.now() - start) * 0.001;
     gl.uniform1f(uProgress, progress);
+    gl.uniform1f(uScanlinePhase, scanlinePhase);
     gl.uniform2f(uResolution, canvas.width, canvas.height);
     gl.uniform1f(uMode, mode);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
@@ -198,6 +214,9 @@ export function createGLPreloader(canvas) {
   return {
     setProgress(value) {
       progress = Math.min(1, Math.max(0, value));
+    },
+    setScanlinePhase(value) {
+      scanlinePhase = Math.min(1, Math.max(0, value));
     },
     setMode(value) {
       mode = value;

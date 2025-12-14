@@ -3,8 +3,8 @@ import { createUnlocker } from './ui/unlocker.js';
 
 const mainCanvas = document.getElementById('main-canvas');
 const crtCanvas  = document.getElementById('crt-canvas');
-const btn        = document.getElementById('nextSlide');
 
+let loadingStarted = false;
 
 // -----------------------------------------------------------------------------
 // INIT CRT
@@ -89,43 +89,60 @@ function startSmoothing() {
 // -----------------------------------------------------------------------------
 // NEXT SLIDE → REAL ASSET LOADING (scanline mode)
 // -----------------------------------------------------------------------------
-
 createUnlocker(
     document.getElementById('unlocker'),
     {
-        onUnlock: async () => {
+        onStart: async () => {
+            if (loadingStarted) return;
+            loadingStarted = true;
 
-            // сбрасываем прогресс
+            crt.setMode('scanline');
             visualProgress = 0;
             targetProgress = 0;
             crt.setProgress(0);
+            crt.setScanlinePhase(0);
+            // стартуем загрузку, НО не ждём
+            void startSceneLoading();
+        },
 
-            // -------- реальные шаги загрузки --------
-            const { Controller } = await import('ore-three');
-            setTargetProgress(0.3);
+        onProgress: p => {
+            // unlock управляет первой фазой (0 → 30%)
+            crt.setScanlinePhase(p);
+        },
 
-            const { HeroLayer } = await import('./scenes/hero-layer.js');
-            setTargetProgress(0.7);
+        onUnlock: () => {
+            const checkDone = () => {
+                if (visualProgress > 0.995) {
+                    crt.finish();
+                    crtCanvas.style.display = 'none';
+                } else {
+                    requestAnimationFrame(checkDone);
+                }
+            };
 
-            const controller = new Controller({
-                pointerEventElement: mainCanvas,
-            });
-
-            controller.addLayer(
-                new HeroLayer({
-                    name: 'HeroLayer',
-                    canvas: mainCanvas,
-                })
-            );
-
-            setTargetProgress(1);
-
-            // закрываем CRT аккуратно
-            setTimeout(() => {
-                crt.finish();
-                crtCanvas.style.display = 'none';
-            }, 250);
-            crt.setMode('scanline');
+            checkDone();
         }
     }
 );
+
+async function startSceneLoading() {
+    const { Controller } = await import('ore-three');
+    setTargetProgress(0.5);
+
+    const { HeroLayer } = await import('./scenes/hero-layer.js');
+    setTargetProgress(0.8);
+
+    const controller = new Controller({
+        pointerEventElement: mainCanvas,
+    });
+
+    controller.addLayer(
+        new HeroLayer({
+            name: 'HeroLayer',
+            canvas: mainCanvas,
+        })
+    );
+
+    setTargetProgress(1);
+
+}

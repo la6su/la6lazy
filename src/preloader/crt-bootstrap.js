@@ -35,6 +35,12 @@ export async function createCRTLoader({ canvas, dpr = 1 }) {
       setProgress(value) {
         worker.postMessage({ type: 'progress', value: value });
       },
+        setScanlinePhase(value) {
+            worker.postMessage({
+                type: 'scanlinePhase',
+                value: Math.min(1, Math.max(0, value))
+            });
+        },
       setMode(mode) {
         const v = mode === 'scanline' ? 1 : 0;
         worker.postMessage({ type: 'mode', value: v });
@@ -63,6 +69,9 @@ export async function createCRTLoader({ canvas, dpr = 1 }) {
     setProgress(value) {
       preloader.setProgress(value);
     },
+      setScanlinePhase(value) {
+          preloader.setScanlinePhase(value === 'scanlinePhase' ? 1 : 0);
+      },
     setMode(mode) {
       preloader.setMode(mode === 'scanline' ? 1 : 0);
     },
