@@ -25,46 +25,76 @@ export function createGLPreloader(canvas) {
 
   // ---------- FRAGMENT ----------
   const fsSrc = `#version 300 es
-    precision highp float;
-    
-    out vec4 outColor;
-    uniform float uProgress;
-    uniform vec2 uResolution;
-    
-    vec2 getUV() {
-        return gl_FragCoord.xy / uResolution;
-    }
-    
-    void main() {
-        float p = uProgress;
-        vec2 uv = getUV();
-        vec2 c = uv - 0.5;
-    
-        float linePhase   = smoothstep(0.0, 0.25, p);
-        float expandPhase = smoothstep(0.25, 0.6, p);
-        float fillPhase   = smoothstep(0.6, 1.0, p);
-    
-        float band = smoothstep(
-            0.02 + expandPhase * 0.4,
-            0.0,
-            abs(c.y)
-        );
-    
-        float circle = smoothstep(
-            expandPhase,
-            expandPhase - 0.02,
-            length(c)
-        );
-    
-        float mask = max(band * linePhase, circle);
-        mask = mix(mask, 1.0, fillPhase);
-    
-        // CRT scanline
-        float scan = sin(gl_FragCoord.y * 1.5) * 0.04;
-        vec3 col = vec3(mask) + scan;
-    
-        outColor = vec4(col, 1.0);
-    }`;
+precision highp float;
+
+out vec4 outColor;
+
+uniform vec2  uResolution;
+uniform float uProgress; // 0 = off, 1 = fully on
+
+float uv2TVHoleShape(vec2 uv, vec2 scale)
+{
+    uv = uv * 2.0 - 1.0;
+    uv = abs(uv);
+    uv *= scale;
+
+    float y = smoothstep(1.0, 0.0, uv.x);
+
+    // distance to the ideal hard edge
+    float d = uv.y - y;
+
+    // anti-alias using fwidth
+    float edge = fwidth(d) * 1.0; // tweak multiplier for softness
+    return smoothstep(edge, -edge, d);
+}
+
+float uv2TopBottomBlack(vec2 uv, float amount01)
+{
+    uv.y = uv.y * 2.0 - 1.0;
+    uv.y = abs(uv.y);
+
+    float edgeVal = 1.0 - amount01;
+    float d = uv.y - edgeVal;
+
+    float edge = fwidth(d) * 1.0;
+    return smoothstep(edge, -edge, d);
+}
+
+void main() {
+    vec2 uv = gl_FragCoord.xy / uResolution;
+
+    // base green-ish color (or replace with your texture)
+    vec3 col = vec3(1.0, 1.0, 1.0);
+
+    // use linear progress, 0 -> 1
+    float param01 = 1.0 - clamp(uProgress, 0.0, 1.0);
+
+    float cutPoint = 0.5;
+    float blendRange = 0.2;
+
+    float anim01;
+    float topBlack;
+    float holeMask;
+
+    // -------- TOP/BOTTOM MASK --------
+    anim01 = param01 / cutPoint;
+    anim01 = anim01 * anim01 * anim01 / 1.05;
+    topBlack = uv2TopBottomBlack(uv, anim01);
+
+    // -------- TV HOLE MASK --------
+    anim01 = (param01 - cutPoint) / (1.0 - cutPoint);
+    anim01 = max(anim01, 0.0);
+
+    float x = anim01 * anim01 * anim01 * 80.0 + 1.0;
+    float y = anim01 * anim01 * 80.0 + 2.0;
+    holeMask = uv2TVHoleShape(uv, vec2(x, y));
+
+    float mixT = smoothstep(cutPoint - blendRange, cutPoint + blendRange, param01);
+    float mask = mix(topBlack, holeMask, mixT);
+
+    outColor = vec4(col * mask, 1.0);
+}
+`;
 
   // ---------- Compile ----------
   function compile(type, source) {
