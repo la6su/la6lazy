@@ -1,131 +1,151 @@
 import { createCRTLoader } from './preloader/crt-bootstrap.js';
 import { createUnlocker } from './ui/unlocker.js';
 
+// -----------------------------------------------------------------------------
+// DOM
+// -----------------------------------------------------------------------------
 const mainCanvas = document.getElementById('main-canvas');
-const crtCanvas  = document.getElementById('crt-canvas');
-const btn        = document.getElementById('nextSlide');
+const crtCanvas = document.getElementById('crt-canvas');
 
+// -----------------------------------------------------------------------------
+// STATE
+// -----------------------------------------------------------------------------
+let loadingStarted = false;
 
 // -----------------------------------------------------------------------------
 // INIT CRT
 // -----------------------------------------------------------------------------
 const crt = await createCRTLoader({
-    canvas: crtCanvas,
-    dpr: window.devicePixelRatio,
+  canvas: crtCanvas,
+  dpr: window.devicePixelRatio,
 });
 
 // -----------------------------------------------------------------------------
-// CRT POWER-ON (fixed duration ~120ms)
+// CRT POWER-ON (fixed frames, no easing)
 // -----------------------------------------------------------------------------
-function playCRTPowerOn(frames = 20) {
-    return new Promise(resolve => {
-        let frame = 0;
+async function playCRTPowerOn(frames = 20) {
+  let frame = 0;
 
-        crt.setMode('boot');
-        crt.setProgress(0);
+  crt.setMode('boot');
+  crt.setProgress(0);
 
-        function tick() {
-            frame++;
-            const t = Math.min(1, frame / frames);
+  return new Promise(resolve => {
+    function tick() {
+      frame++;
+      crt.setProgress(Math.min(1, frame / frames));
 
-            // ВАЖНО: линейно, без easing
-            crt.setProgress(t);
-
-            if (frame < frames) {
-                requestAnimationFrame(tick);
-            } else {
-                crt.setProgress(1);
-                resolve();
-            }
-        }
-
+      if (frame < frames) {
         requestAnimationFrame(tick);
-    });
+      } else {
+        resolve();
+      }
+    }
+    requestAnimationFrame(tick);
+  });
 }
 
-
 // запускаем CRT сразу
-await playCRTPowerOn(20);
+await playCRTPowerOn();
 
 // -----------------------------------------------------------------------------
-// PROGRESS CONTROLLER (ТОЛЬКО для scanline-loader)
+// LOAD PROGRESS CONTROLLER (single source of truth)
 // -----------------------------------------------------------------------------
 let visualProgress = 0;
 let targetProgress = 0;
 let rafId = null;
 
-function setTargetProgress(v) {
-    targetProgress = Math.min(1, Math.max(0, v));
-    startSmoothing();
+/**
+ * Запросить изменение прогресса загрузки.
+ * Прогресс всегда монотонный (не откатывается назад).
+ */
+function setLoadProgress(value) {
+  targetProgress = Math.min(1, Math.max(targetProgress, value));
+  startProgressSmoothing();
 }
 
-function startSmoothing() {
-    if (rafId !== null) return;
+function startProgressSmoothing() {
+  if (rafId !== null) return;
 
-    function tick() {
-        visualProgress += (targetProgress - visualProgress) * 0.18;
-        crt.setProgress(visualProgress);
+  function tick() {
+    visualProgress += (targetProgress - visualProgress) * 0.18;
+    crt.setProgress(visualProgress);
 
-        if (Math.abs(targetProgress - visualProgress) > 0.002) {
-            rafId = requestAnimationFrame(tick);
-        } else {
-            visualProgress = targetProgress;
-            crt.setProgress(visualProgress);
-            rafId = null;
-        }
+    if (Math.abs(targetProgress - visualProgress) > 0.002) {
+      rafId = requestAnimationFrame(tick);
+    } else {
+      visualProgress = targetProgress;
+      crt.setProgress(visualProgress);
+      rafId = null;
     }
+  }
 
-    rafId = requestAnimationFrame(tick);
+  rafId = requestAnimationFrame(tick);
 }
 
 // -----------------------------------------------------------------------------
 // PRELOAD MINIMUM (без визуального loader)
 // -----------------------------------------------------------------------------
 (async function preloadMinimal() {
-    // минимальный набор для готовности UI / CRT
-    await import('./preloader/shader-preload.js');
-    await import('./preloader/preloader.js');
+  await import('./preloader/shader-preload.js');
+  await import('./preloader/preloader.js');
 })();
+
 // -----------------------------------------------------------------------------
-// NEXT SLIDE → REAL ASSET LOADING (scanline mode)
+// UNLOCK → REAL ASSET LOADING (scanline mode)
 // -----------------------------------------------------------------------------
+createUnlocker(document.getElementById('unlocker'), {
+  onStart: () => {
+    if (loadingStarted) return;
+    loadingStarted = true;
+    //  console.log('unlock start');
 
-createUnlocker(
-    document.getElementById('unlocker'),
-    {
-        onUnlock: async () => {
+    crt.setMode('scanline');
 
-            // сбрасываем прогресс
-            visualProgress = 0;
-            targetProgress = 0;
-            crt.setProgress(0);
+    // стартуем загрузку, но не ждём
+    void startSceneLoading();
+  },
+  onProgress: p => {
+    // console.log('unlock progress', p);
+    crt.setScanlinePhase(p);
+  },
 
-            // -------- реальные шаги загрузки --------
-            const { Controller } = await import('ore-three');
-            setTargetProgress(0.3);
+  onUnlock: () => {
+    // гарантируем завершение прогресса
+    setLoadProgress(1);
+    // console.log('unlock end');
+    const waitForFinish = () => {
+      if (visualProgress > 0.995) {
+        crt.finish();
+        crtCanvas.style.display = 'none';
+      } else {
+        requestAnimationFrame(waitForFinish);
+      }
+    };
 
-            const { HeroLayer } = await import('./scenes/hero-layer.js');
-            setTargetProgress(0.7);
+    waitForFinish();
+  },
+});
 
-            const controller = new Controller({
-                pointerEventElement: mainCanvas,
-            });
+// -----------------------------------------------------------------------------
+// SCENE LOADING PIPELINE
+// -----------------------------------------------------------------------------
+async function startSceneLoading() {
+  const { Controller } = await import('ore-three');
+  setLoadProgress(0.5);
 
-            controller.addLayer(
-                new HeroLayer({
-                    name: 'HeroLayer',
-                    canvas: mainCanvas,
-                })
-            );
+  const { HeroLayer } = await import('./scenes/hero-layer.js');
+  setLoadProgress(0.8);
 
-            setTargetProgress(1);
+  const controller = new Controller({
+    pointerEventElement: mainCanvas,
+  });
 
-            // закрываем CRT аккуратно
-            setTimeout(() => {
-                crt.finish();
-                crtCanvas.style.display = 'none';
-            }, 250);
-            crt.setMode('scanline');
-        }
-    }
-);
+  controller.addLayer(
+    new HeroLayer({
+      name: 'HeroLayer',
+      canvas: mainCanvas,
+    })
+  );
+
+  setLoadProgress(1);
+}

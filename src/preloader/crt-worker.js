@@ -2,27 +2,37 @@ import { createGLPreloader } from './shader-preload.js';
 
 let preloader = null;
 
-onmessage = e => {
-  const data = e.data;
+self.onmessage = (e) => {
+    const { type, value, canvas, width, height, dpr } = e.data;
 
-  if (data.type === 'init') {
-    const { canvas, width, height, dpr } = data;
+    switch (type) {
+        case 'init': {
+            canvas.width  = width * dpr;
+            canvas.height = height * dpr;
 
-    canvas.width = width * dpr;
-    canvas.height = height * dpr;
+            preloader = createGLPreloader(canvas);
+            break;
+        }
 
-    preloader = createGLPreloader(canvas);
-    preloader.setProgress(0.0);
-  }
+        case 'progress': {
+            preloader?.setProgress(value);
+            break;
+        }
 
-  if (data.type === 'progress' && preloader) {
-    preloader.setProgress(data.value);
-  }
-  if (data.type === 'mode' && preloader) {
-    preloader.setMode(data.value);
-  }
-  if (data.type === 'stop') {
-    preloader?.stop();
-    close();
-  }
+        case 'scanlinePhase': {
+            preloader?.setScanlinePhase(value);
+            break;
+        }
+
+        case 'mode': {
+            preloader?.setMode(value);
+            break;
+        }
+
+        case 'stop': {
+            preloader?.stop?.();
+            self.close();
+            break;
+        }
+    }
 };
