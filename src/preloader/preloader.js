@@ -1,19 +1,26 @@
-import { createGLPreloader } from './shader-preload.js';
-import GUI from 'lil-gui';
 // This file wraps the raw WebGL preloader for lifecycle control.
 // The actual shader logic lives in shader-preload.js.
-export function startPreloader(canvas) {
+export async function startPreloader(canvas) {
+  const { createGLPreloader } = await import('./shader-preload.js');
   const preloader = createGLPreloader(canvas);
 
-  const gui = new GUI();
-  const params = {
-    progress: 0.0,
-  };
+  // Dev-only GUI for debugging
+  if (import.meta.env.DEV) {
+    try {
+      const { default: GUI } = await import('lil-gui');
+      const gui = new GUI();
+      const params = {
+        progress: 0.0,
+      };
 
-  gui
-    .add(params, 'progress', 0, 1, 0.001)
-    .name('uProgress')
-    .onChange(value => preloader.setProgress(value));
+      gui
+        .add(params, 'progress', 0, 1, 0.001)
+        .name('uProgress')
+        .onChange(value => preloader.setProgress(value));
+    } catch (error) {
+      console.warn('lil-gui not available in production');
+    }
+  }
 
   return preloader; // возвращает { stop() }
 }

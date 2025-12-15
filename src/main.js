@@ -130,22 +130,27 @@ createUnlocker(document.getElementById('unlocker'), {
 // SCENE LOADING PIPELINE
 // -----------------------------------------------------------------------------
 async function startSceneLoading() {
-  const { Controller } = await import('ore-three');
-  setLoadProgress(0.5);
+  try {
+    const { Controller } = await import('ore-three');
+    setLoadProgress(0.5);
 
-  const { HeroLayer } = await import('./scenes/hero-layer.js');
-  setLoadProgress(0.8);
+    const { HeroLayer } = await import('./scenes/hero-layer.js');
+    setLoadProgress(0.8);
 
-  const controller = new Controller({
-    pointerEventElement: mainCanvas,
-  });
+    const controller = new Controller({
+      pointerEventElement: mainCanvas,
+    });
 
-  controller.addLayer(
-    new HeroLayer({
-      name: 'HeroLayer',
-      canvas: mainCanvas,
-    })
-  );
+    controller.addLayer(
+      new HeroLayer({
+        name: 'HeroLayer',
+        canvas: mainCanvas,
+      })
+    );
 
-  setLoadProgress(1);
+    setLoadProgress(1);
+  } catch (error) {
+    console.error('Failed to load scene:', error);
+    setLoadProgress(1); // Complete progress even on error
+  }
 }
