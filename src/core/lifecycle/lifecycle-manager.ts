@@ -4,13 +4,28 @@ import { ProgressController } from '../progress-controller';
 import { ErrorHandler } from '../services/error-handler';
 import { MemoryMonitorService } from '../services/memory-monitor';
 
-export interface LifecycleManagerOptions {
+/**
+ * Configuration interfaces for better organization
+ */
+export interface EventsConfig {
   globalEmitter: EventEmitter;
+}
+
+export interface StateConfig {
   appState: AppState;
   progressController: ProgressController;
+}
+
+export interface UIConfig {
   mainCanvas: HTMLCanvasElement;
   crtCanvas: HTMLCanvasElement;
   unlockerEl: HTMLElement;
+}
+
+export interface LifecycleManagerConfig {
+  events: EventsConfig;
+  state: StateConfig;
+  ui: UIConfig;
 }
 
 /**
@@ -32,13 +47,16 @@ export class LifecycleManager {
   private memoryMonitor: MemoryMonitorService;
   private loadingStarted = false;
 
-  constructor(options: LifecycleManagerOptions) {
-    this.globalEmitter = options.globalEmitter;
-    this.appState = options.appState;
-    this.progressController = options.progressController;
-    this.mainCanvas = options.mainCanvas;
-    this.crtCanvas = options.crtCanvas;
-    this.unlockerEl = options.unlockerEl;
+  constructor(config: LifecycleManagerConfig) {
+    // Extract configuration groups
+    const { events, state, ui } = config;
+
+    this.globalEmitter = events.globalEmitter;
+    this.appState = state.appState;
+    this.progressController = state.progressController;
+    this.mainCanvas = ui.mainCanvas;
+    this.crtCanvas = ui.crtCanvas;
+    this.unlockerEl = ui.unlockerEl;
 
     // Initialize services
     this.errorHandler = new ErrorHandler({

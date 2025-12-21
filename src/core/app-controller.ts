@@ -2,7 +2,7 @@ import EventEmitter from 'wolfy87-eventemitter';
 import { DOMUtils } from '../utils/dom';
 import { AppState } from './app-state';
 import { ProgressController } from './progress-controller';
-import { LifecycleManager } from './lifecycle/lifecycle-manager';
+import { LifecycleManager, LifecycleManagerConfig } from './lifecycle/lifecycle-manager';
 
 /**
  * Main application controller - simplified facade using composition
@@ -31,15 +31,24 @@ export class AppController {
     this.crtCanvas = DOMUtils.getElementById('crt-canvas', HTMLCanvasElement)!;
     this.unlockerEl = DOMUtils.getElementById('unlocker')!;
 
-    // Initialize lifecycle manager with all services
-    this.lifecycleManager = new LifecycleManager({
-      globalEmitter: this.globalEmitter,
-      appState: this.appState,
-      progressController: this.progressController,
-      mainCanvas: this.mainCanvas,
-      crtCanvas: this.crtCanvas,
-      unlockerEl: this.unlockerEl,
-    });
+    // Create configuration object
+    const config: LifecycleManagerConfig = {
+      events: {
+        globalEmitter: this.globalEmitter,
+      },
+      state: {
+        appState: this.appState,
+        progressController: this.progressController,
+      },
+      ui: {
+        mainCanvas: this.mainCanvas,
+        crtCanvas: this.crtCanvas,
+        unlockerEl: this.unlockerEl,
+      },
+    };
+
+    // Initialize lifecycle manager with configuration
+    this.lifecycleManager = new LifecycleManager(config);
 
     // Export for global access
     (window as any).appEmitter = globalEmitter;
