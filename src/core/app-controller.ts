@@ -204,9 +204,9 @@ export class AppController {
    * Start scene loading pipeline
    */
   private async startSceneLoading(): Promise<void> {
-    // Load ore-three with progress
-    const oreThree = await this.loadWithProgress('ore-three', 0.3);
-    const { Controller } = oreThree;
+    // Load ore-three (static import for reliability)
+    const { Controller } = await import('ore-three');
+    this.progressController.setTargetProgress(0.3);
 
     this.controller = new Controller({
       pointerEventElement: this.mainCanvas,
@@ -269,6 +269,10 @@ export class AppController {
 
     // Clean up current scene
     if (this.currentSceneName) {
+      const currentLayer = this.controller.getLayer(this.currentSceneName);
+      if (currentLayer && typeof currentLayer.dispose === 'function') {
+        currentLayer.dispose();
+      }
       this.controller.removeLayer(this.currentSceneName);
     }
 

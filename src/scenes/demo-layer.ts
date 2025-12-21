@@ -78,11 +78,33 @@ export class DemoLayer extends BaseLayer {
       this.renderer.render(this.scene, this.camera);
     }
   }
-
-  onResize() {
-    if (this.camera) {
-      this.camera.aspect = this.info.size.canvasAspectRatio;
-      this.camera.updateProjectionMatrix();
-    }
-  }
+  //
+  // onResize() {
+  //   if (this.camera) {
+  //     this.camera.aspect = this.info.size.canvasAspectRatio;
+  //     this.camera.updateProjectionMatrix();
+  //   }
+  // }
+  //
+  // dispose() {
+  //   // Clean up geometry and materials
+  //   if (this.sphere) {
+  //     this.sphere.geometry.dispose();
+  //     if (Array.isArray(this.sphere.material)) {
+  //       this.sphere.material.forEach(material => material.dispose());
+  //     } else {
+  //       this.sphere.material.dispose();
+  //     }
+  //     this.scene.remove(this.sphere);
+  //   }
+  //
+  //   // Clean up lights
+  //   this.lights.forEach(light => {
+  //     this.scene.remove(light);
+  //   });
+  //   this.lights.length = 0;
+  //
+  //   // Clear asset manager references if needed
+  //   // this.assetManager.clearAssets(); // Uncomment if assets are cached per scene
+  // }
 }

@@ -5,6 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
     <title>ORE v5 Lazy Example</title>
+
+    <!-- Preload critical resources -->
+    <link rel="preload" href="./preloader/shaders/crt.vs" as="fetch" crossorigin>
+    <link rel="preload" href="./preloader/shaders/crt.fs" as="fetch" crossorigin>
+    <link rel="modulepreload" href="./preloader/shader-preload.js">
+
     <style>
       body,
       html {
@@ -93,27 +99,78 @@
         z-index: 20;
         justify-content: center;
         align-items: center;
+        background: #000;
       }
+
+      .crt-loader {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 20px;
+      }
+
+      .crt-dots {
+        display: flex;
+        gap: 8px;
+      }
+
       .crt-dot {
         width: 4px;
         height: 4px;
-        background: #fff;
-        animation: pulse 0.6s ease-in-out infinite alternate;
+        background: #0f0;
+        border-radius: 50%;
+        animation: crt-pulse 1.2s ease-in-out infinite;
       }
 
-      @keyframes pulse {
-        from {
+      .crt-dot:nth-child(2) {
+        animation-delay: 0.2s;
+      }
+
+      .crt-dot:nth-child(3) {
+        animation-delay: 0.4s;
+      }
+
+      .crt-text {
+        color: #0f0;
+        font-size: 12px;
+        font-family: monospace;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        opacity: 0.7;
+        animation: crt-text-flicker 2s ease-in-out infinite;
+      }
+
+      @keyframes crt-pulse {
+        0%, 100% {
           opacity: 0.3;
+          transform: scale(1);
         }
-        to {
+        50% {
           opacity: 1;
+          transform: scale(1.2);
+        }
+      }
+
+      @keyframes crt-text-flicker {
+        0%, 100% {
+          opacity: 0.7;
+        }
+        50% {
+          opacity: 0.3;
         }
       }
     </style>
   </head>
   <body>
     <div id="loader">
-      <div class="crt-dot"></div>
+      <div class="crt-loader">
+        <div class="crt-dots">
+          <div class="crt-dot"></div>
+          <div class="crt-dot"></div>
+          <div class="crt-dot"></div>
+        </div>
+        <div class="crt-text">LOADING SYSTEM</div>
+      </div>
     </div>
     <div id="canvas-wrapper">
       <canvas id="main-canvas"></canvas>

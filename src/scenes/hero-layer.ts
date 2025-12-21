@@ -52,4 +52,34 @@ export class HeroLayer extends BaseLayer {
       this.renderer.render(this.scene, this.camera);
     }
   }
+  //
+  // onResize() {
+  //   if (this.camera) {
+  //     this.camera.aspect = this.info.size.canvasAspectRatio;
+  //     this.camera.updateProjectionMatrix();
+  //   }
+  // }
+  //
+  // dispose() {
+  //   // Clean up geometry and materials
+  //   if (this.box) {
+  //     this.box.geometry.dispose();
+  //     if (Array.isArray(this.box.material)) {
+  //       this.box.material.forEach(material => material.dispose());
+  //     } else {
+  //       this.box.material.dispose();
+  //     }
+  //     this.scene.remove(this.box);
+  //   }
+  //
+  //   // Clean up lights
+  //   this.scene.children.forEach(child => {
+  //     if (child.type === 'AmbientLight') {
+  //       this.scene.remove(child);
+  //     }
+  //   });
+  //
+  //   // Clear asset manager references if needed
+  //   // this.assetManager.clearAssets(); // Uncomment if assets are cached per scene
+  // }
 }
