@@ -79,16 +79,20 @@ export function createUnlocker(
   window.addEventListener('pointerup', handlePointerUp);
 
   // Добавляем touch события как fallback для лучшей мобильной поддержки
-  thumb.addEventListener('touchstart', (e: TouchEvent) => {
-    e.preventDefault();
-    dragging = true;
-    startX = e.touches[0].pageX;
+  thumb.addEventListener(
+    'touchstart',
+    (e: TouchEvent) => {
+      e.preventDefault();
+      dragging = true;
+      startX = e.touches[0].pageX;
 
-    if (!started) {
-      started = true;
-      onStart?.();
-    }
-  }, { passive: false });
+      if (!started) {
+        started = true;
+        onStart?.();
+      }
+    },
+    { passive: false }
+  );
 
   const handleTouchMove = (e: TouchEvent) => {
     if (!dragging) return;

@@ -13,5 +13,9 @@
     "rootDir": "./",
     "baseUrl": ".",
     "paths": {}
-  }
+  },
+  "include": [
+    "src/**/*",
+    "types.d.ts"
+  ]
 }
