@@ -50,8 +50,13 @@ src/
 │   └─ shader-preload.ts     # Shader Preloader - imoports and compiles shaders (CRT + scanline) from shaders dir
 │
 ├─ scenes/
+│   ├─ scene-manager.ts      # Scene management using ore-three Controller
 │   ├─ hero-layer.ts         # ore-three v5 BaseLayer (lazy-loaded)
 │   └─ *-layer.ts            # Additional scene layers
+│
+├─ core/
+│   ├─ app-state.ts          # Application state management
+│   └─ progress-controller.ts # Progress animation controller
 │
 ├─ utils/
 │   ├─ dom.ts                # DOM manipulation utilities
