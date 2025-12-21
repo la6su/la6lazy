@@ -24,7 +24,7 @@ export class LifecycleManager {
   private crtCanvas: HTMLCanvasElement;
   private unlockerEl: HTMLElement;
 
-  private crt: Awaited<ReturnType<typeof createCRTLoader>> | null = null;
+  private crt: any = null; // CRT loader from main.ts
   private controller: any = null; // ore-three Controller
   private sceneClasses: Record<string, any> = {};
   private currentSceneName: string | null = null;
@@ -61,8 +61,7 @@ export class LifecycleManager {
       // Phase 2: Initialize memory monitor early
       await this.initMemoryMonitor();
 
-      // Phase 3: Wait for CRT boot to complete, then show unlocker
-      await this.waitForCRTReady();
+      // Phase 3: Show unlocker (CRT is already booted in main.ts)
       await this.initUnlocker();
 
     } catch (error) {
@@ -72,16 +71,7 @@ export class LifecycleManager {
     }
   }
 
-  /**
-   * Wait for CRT to be ready (boot animation completed)
-   */
-  private async waitForCRTReady(): Promise<void> {
-    return new Promise((resolve) => {
-      // CRT from main.ts should already be in 'idle' mode after boot
-      // Small delay to ensure smooth transition
-      setTimeout(resolve, 100);
-    });
-  }
+
 
 
 
