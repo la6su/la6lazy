@@ -44,7 +44,7 @@ export class LifecycleManager {
     this.errorHandler = new ErrorHandler({
       appState: this.appState,
       crtCanvas: this.crtCanvas,
-      unlockerEl: this.unlockerEl
+      unlockerEl: this.unlockerEl,
     });
 
     this.memoryMonitor = new MemoryMonitorService();
@@ -63,17 +63,12 @@ export class LifecycleManager {
 
       // Phase 3: Show unlocker (CRT is already booted in main.ts)
       await this.initUnlocker();
-
     } catch (error) {
       console.error('Failed to initialize app:', error);
       this.errorHandler.handleCriticalError(error);
       throw error;
     }
   }
-
-
-
-
 
   /**
    * Initialize unlocker component
@@ -130,7 +125,10 @@ export class LifecycleManager {
     });
 
     // Load hero scene (initial scene)
-    const heroModule = await this.loadWithProgress('../../scenes/hero-layer', 0.7);
+    const heroModule = await this.loadWithProgress(
+      '../../scenes/hero-layer',
+      0.7
+    );
     const { HeroLayer } = heroModule;
 
     this.sceneClasses = {
@@ -150,7 +148,10 @@ export class LifecycleManager {
   /**
    * Load module with progress tracking
    */
-  private async loadWithProgress(modulePath: string, targetProgress: number): Promise<any> {
+  private async loadWithProgress(
+    modulePath: string,
+    targetProgress: number
+  ): Promise<any> {
     const module = await import(modulePath);
     this.progressController.setTargetProgress(targetProgress);
     return module;
@@ -219,8 +220,6 @@ export class LifecycleManager {
       console.log(`Switched to scene: ${sceneName}`);
     }
   }
-
-
 
   /**
    * Dispose all resources

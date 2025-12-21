@@ -7,7 +7,7 @@
     <title>ORE v5 Lazy Example</title>
 
     <!-- Preload critical resources -->
-    <link rel="modulepreload" href="./preloader/shaders.ts">
+    <link rel="modulepreload" href="./preloader/shaders.ts" />
 
     <style>
       body,
@@ -40,7 +40,6 @@
       #crt-canvas {
         z-index: 10;
         pointer-events: none;
-        background: rgba(0, 20, 0, 0.1); /* temporary background to see if canvas is visible */
       }
 
       #unlocker {
@@ -140,7 +139,8 @@
       }
 
       @keyframes crt-pulse {
-        0%, 100% {
+        0%,
+        100% {
           opacity: 0.3;
           transform: scale(1);
         }
@@ -151,7 +151,8 @@
       }
 
       @keyframes crt-text-flicker {
-        0%, 100% {
+        0%,
+        100% {
           opacity: 0.7;
         }
         50% {

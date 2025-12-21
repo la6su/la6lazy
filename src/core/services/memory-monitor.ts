@@ -15,7 +15,7 @@ export class MemoryMonitorService {
 
       memoryMonitor.onMemoryUpdate((info: any) => {
         console.log(
-          `Memory: ${info.usedJSHeapSize / 1024 / 1024 | 0}MB / ${info.jsHeapSizeLimit / 1024 / 1024 | 0}MB`
+          `Memory: ${(info.usedJSHeapSize / 1024 / 1024) | 0}MB / ${(info.jsHeapSizeLimit / 1024 / 1024) | 0}MB`
         );
       });
 

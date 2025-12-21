@@ -25,7 +25,9 @@ export const globalEmitter = new EventEmitter();
 
     // Initialize CRT loader immediately
     const { createCRTLoader } = await import('./preloader/crt-bootstrap');
-    const crtCanvas = document.getElementById('crt-canvas') as HTMLCanvasElement;
+    const crtCanvas = document.getElementById(
+      'crt-canvas'
+    ) as HTMLCanvasElement;
 
     if (crtCanvas) {
       const crt = await createCRTLoader({

@@ -24,7 +24,10 @@ export class AppController {
     this.progressController = new ProgressController();
 
     // Initialize DOM elements
-    this.mainCanvas = DOMUtils.getElementById('main-canvas', HTMLCanvasElement)!;
+    this.mainCanvas = DOMUtils.getElementById(
+      'main-canvas',
+      HTMLCanvasElement
+    )!;
     this.crtCanvas = DOMUtils.getElementById('crt-canvas', HTMLCanvasElement)!;
     this.unlockerEl = DOMUtils.getElementById('unlocker')!;
 
@@ -71,8 +74,6 @@ export class AppController {
   getAppState(): AppState {
     return this.appState;
   }
-
-
 
   /**
    * Dispose resources

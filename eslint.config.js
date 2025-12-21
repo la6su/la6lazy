@@ -30,14 +30,20 @@ export default [
       prettier: prettierPlugin,
     },
     rules: {
-      'prefer-const': ['error', {
-        destructuring: 'any',
-        ignoreReadBeforeAssign: false,
-      }],
-      '@typescript-eslint/no-unused-vars': ['warn', {
-        argsIgnorePattern: '^_',
-        varsIgnorePattern: '^_',
-      }],
+      'prefer-const': [
+        'error',
+        {
+          destructuring: 'any',
+          ignoreReadBeforeAssign: false,
+        },
+      ],
+      '@typescript-eslint/no-unused-vars': [
+        'warn',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+        },
+      ],
       '@typescript-eslint/no-explicit-any': 'off', // Allow any for now
       'no-case-declarations': 'off', // Allow declarations in case blocks
       'no-unused-vars': 'off', // Use TypeScript version

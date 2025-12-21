@@ -317,7 +317,7 @@ Assets are managed through `AssetManager` with caching and lazy loading:
 await assetManager.loadAsset({
   name: 'texture1',
   url: '/textures/brick.jpg',
-  type: 'texture'
+  type: 'texture',
 });
 
 // Get cached asset
@@ -326,7 +326,7 @@ const texture = assetManager.getAsset('texture1');
 // Load multiple assets
 await assetManager.loadAssets([
   { name: 'model', url: '/models/cube.glb', type: 'gltf' },
-  { name: 'sound', url: '/audio/ambient.mp3', type: 'audio' }
+  { name: 'sound', url: '/audio/ambient.mp3', type: 'audio' },
 ]);
 ```
 
@@ -371,6 +371,7 @@ await import('./scenes/hero-layer.ts');
   - typography
   - UI
   - preload background
+
 ---
 
 ## Forbidden (Hard Rules)
