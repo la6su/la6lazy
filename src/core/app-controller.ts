@@ -6,7 +6,7 @@ import { MemoryMonitor } from '../utils/memory';
 import { WebGLErrorBoundary } from '../utils/error-boundary';
 import { AppState, AppPhase } from './app-state';
 import { ProgressController } from './progress-controller';
-import { SceneManager } from '../scenes/scene-manager';
+
 
 /**
  * Main application controller managing the entire lifecycle
@@ -14,14 +14,16 @@ import { SceneManager } from '../scenes/scene-manager';
 export class AppController {
   private appState: AppState;
   private progressController: ProgressController;
-  private sceneManager: SceneManager | null = null;
+  private controller: any = null; // ore-three Controller
+  private sceneClasses: Record<string, any> = {};
+  private currentSceneName: string | null = null;
   private crt: Awaited<ReturnType<typeof createCRTLoader>> | null = null;
   private globalEmitter: EventEmitter;
 
   // DOM elements
-  private mainCanvas: HTMLCanvasElement;
-  private crtCanvas: HTMLCanvasElement;
-  private unlockerEl: HTMLElement;
+  private mainCanvas!: HTMLCanvasElement;
+  private crtCanvas!: HTMLCanvasElement;
+  private unlockerEl!: HTMLElement;
 
   // State
   private loadingStarted = false;
@@ -61,6 +63,7 @@ export class AppController {
     // Export for global access
     (window as any).appEmitter = globalEmitter;
     (window as any).appState = this.appState;
+    (window as any).appController = this;
   }
 
   /**
@@ -68,8 +71,14 @@ export class AppController {
    */
   async initialize(): Promise<void> {
     try {
+      // Hide initial loader (теперь шейдеры загружены)
+      import('../preloader/preloader').then(({ hideLoader }) => hideLoader());
+
+      // Initialize CRT and play power-on animation
       await this.initCRT();
       await this.playCRTPowerOn();
+
+      // Now show unlocker
       this.initUnlocker();
       this.initMemoryMonitor();
     } catch (error) {
@@ -125,18 +134,33 @@ export class AppController {
   }
 
   /**
+   * Heavy initialization (scene loading) - called after unlock
+   */
+  private async initializeHeavy(): Promise<void> {
+    try {
+      // Preload preloader wrapper if needed (шейдеры уже загружены)
+      await import('../preloader/preloader');
+    } catch (error) {
+      console.error('Failed to initialize heavy app:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Initialize unlocker component
    */
   private initUnlocker(): void {
     createUnlocker(this.unlockerEl, {
-      onStart: () => {
+      onStart: async () => {
         if (this.loadingStarted) return;
         this.loadingStarted = true;
+
+        // Start scene loading preparation
+        await this.initializeHeavy();
+
+        // Now start scene loading
         this.appState.setPhase(AppPhase.SCANLINE_LOADER);
-
         if (this.crt) this.crt.setMode('scanline');
-
-        // Start scene loading
         void this.startSceneLoading();
       },
       onProgress: (p: number) => {
@@ -175,34 +199,31 @@ export class AppController {
 
     this.progressController.setTargetProgress(0.3);
 
-    const controller = new Controller({
+    this.controller = new Controller({
       pointerEventElement: this.mainCanvas,
     });
 
     this.progressController.setTargetProgress(0.5);
 
-    // Initialize scene manager
-    this.sceneManager = new SceneManager(controller, this.mainCanvas, this.globalEmitter);
-
     // Register scenes
     const { HeroLayer } = await import('../scenes/hero-layer');
     const { DemoLayer } = await import('../scenes/demo-layer');
 
-    this.sceneManager.registerScenes({
+    this.sceneClasses = {
       hero: HeroLayer,
       demo: DemoLayer,
-    });
+    };
 
     this.progressController.setTargetProgress(0.8);
 
     // Load initial scene
-    await this.sceneManager.switchToScene('hero');
+    await this.switchToScene('hero');
 
     this.progressController.setTargetProgress(1);
 
     // Export for global access
-    (window as any).sceneManager = this.sceneManager;
-    (window as any).switchToScene = this.sceneManager.switchToScene.bind(this.sceneManager);
+    (window as any).controller = this.controller;
+    (window as any).switchToScene = this.switchToScene.bind(this);
   }
 
   /**
@@ -224,6 +245,42 @@ export class AppController {
   }
 
   /**
+   * Switch to scene by name
+   */
+  async switchToScene(sceneName: string): Promise<void> {
+    if (!this.controller) return;
+
+    // Clean up current scene
+    if (this.currentSceneName) {
+      this.controller.removeLayer(this.currentSceneName);
+    }
+
+    // Create new scene
+    const SceneClass = this.sceneClasses[sceneName];
+    if (SceneClass) {
+      const scene = new SceneClass({
+        name: sceneName,
+        canvas: this.mainCanvas,
+      });
+
+      this.controller.addLayer(scene);
+      this.currentSceneName = sceneName;
+      this.globalEmitter.emit('sceneChanged', {
+        sceneName,
+        layer: scene,
+      });
+      console.log(`Switched to scene: ${sceneName}`);
+    }
+  }
+
+  /**
+   * Get current scene name
+   */
+  getCurrentSceneName(): string | null {
+    return this.currentSceneName;
+  }
+
+  /**
    * Get app state
    */
   getAppState(): AppState {
@@ -231,10 +288,10 @@ export class AppController {
   }
 
   /**
-   * Get scene manager
+   * Test fallback UI (temporary method for testing)
    */
-  getSceneManager(): SceneManager | null {
-    return this.sceneManager;
+  testFallbackUI(): void {
+    this.showFallbackUI({ message: 'Test WebGL error for UI testing' });
   }
 
   /**
@@ -277,10 +334,11 @@ export class AppController {
       z-index: 1000;
       padding: 20px;
       box-sizing: border-box;
+      text-align: center;
     `;
 
     fallback.innerHTML = `
-      <h1>ORE v5 Lazy Example</h1>
+      <h1>NOT SUPPORTED</h1>
       <p>WebGL initialization failed.</p>
       <p>Error: ${error.message || 'Unknown error'}</p>
       <p>Please check your browser compatibility or try refreshing the page.</p>
@@ -289,7 +347,7 @@ export class AppController {
         background: #0f0;
         color: #000;
         border: none;
-        border-radius: 4px;
+        border-radius: 0;
         cursor: pointer;
         margin-top: 20px;
         font-family: monospace;
@@ -308,9 +366,9 @@ export class AppController {
       this.crt = null;
     }
 
-    if (this.sceneManager) {
-      this.sceneManager.dispose();
-      this.sceneManager = null;
+    if (this.controller) {
+      this.controller.dispose();
+      this.controller = null;
     }
 
     this.progressController.dispose();

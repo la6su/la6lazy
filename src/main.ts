@@ -16,11 +16,10 @@ export const globalEmitter = new EventEmitter();
 const appController = new AppController(globalEmitter);
 
 // -----------------------------------------------------------------------------
-// PRELOAD MINIMUM (без визуального loader)
+// PRELOAD MINIMUM (только шейдеры для CRT)
 // -----------------------------------------------------------------------------
 (async function preloadMinimal() {
   await import('./preloader/shader-preload');
-  await import('./preloader/preloader');
 })();
 
 // -----------------------------------------------------------------------------
