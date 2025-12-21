@@ -229,6 +229,26 @@ async function switchToScene(sceneName: string) {
 
   // Remove current scene if exists
   if (currentScene) {
+    // Dispose of Three.js resources
+    currentScene.scene.traverse((object: any) => {
+      if (object.material) {
+        if (Array.isArray(object.material)) {
+          object.material.forEach((material: any) => material.dispose());
+        } else {
+          object.material.dispose();
+        }
+      }
+      if (object.geometry) {
+        object.geometry.dispose();
+      }
+    });
+
+    // Clear the scene
+    while (currentScene.scene.children.length > 0) {
+      currentScene.scene.remove(currentScene.scene.children[0]);
+    }
+
+    // Remove from controller
     controller.removeLayer(currentScene.name);
     currentScene = null;
   }
