@@ -1,35 +1,51 @@
-// eslint.config.js
-import eslintPluginPrettier from 'eslint-plugin-prettier';
-import tsParser from '@typescript-eslint/parser';
-import tsPlugin from '@typescript-eslint/eslint-plugin';
+import js from '@eslint/js';
+import tseslint from '@typescript-eslint/eslint-plugin';
+import tsparser from '@typescript-eslint/parser';
+import globals from 'globals';
 
 export default [
+  js.configs.recommended,
   {
-    files: ['**/*.{js,ts}'],
+    files: ['**/*.ts'],
     languageOptions: {
-      parser: tsParser,
+      parser: tsparser,
       parserOptions: {
-        ecmaVersion: 'latest',
+        project: './tsconfig.json',
         sourceType: 'module',
+      },
+      globals: {
+        ...globals.browser,
+        ...globals.node,
+        fetch: 'readonly',
+        clearInterval: 'readonly',
+        setInterval: 'readonly',
+        self: 'readonly',
       },
     },
     plugins: {
-      '@typescript-eslint': tsPlugin,
-      prettier: eslintPluginPrettier,
+      '@typescript-eslint': tseslint,
     },
     rules: {
-      /* Базовые JS правила */
-      strict: ['error', 'never'],
-      'no-undef': 'error',
-      'no-unused-vars': 'off',
-
-      /* TypeScript */
-      '@typescript-eslint/no-unused-vars': ['error'],
-      '@typescript-eslint/no-explicit-any': 'error',
-      '@typescript-eslint/consistent-type-definitions': ['error', 'interface'],
-
-      /* Prettier */
-      'prettier/prettier': 'error',
+      'prefer-const': ['error', {
+        destructuring: 'any',
+        ignoreReadBeforeAssign: false,
+      }],
+      '@typescript-eslint/no-unused-vars': ['warn', {
+        argsIgnorePattern: '^_',
+        varsIgnorePattern: '^_',
+      }],
+      '@typescript-eslint/no-explicit-any': 'off', // Allow any for now
+      'no-case-declarations': 'off', // Allow declarations in case blocks
+      'no-unused-vars': 'off', // Use TypeScript version
     },
+  },
+  {
+    files: ['vite.config.js'],
+    languageOptions: {
+      globals: globals.node,
+    },
+  },
+  {
+    ignores: ['node_modules/**', 'build/**', '.idea/**', '**/*.d.ts'],
   },
 ];

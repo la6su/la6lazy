@@ -1,8 +1,10 @@
-import { Texture, TextureLoader, CubeTextureLoader, AudioLoader, FontLoader } from 'three';
+import { Texture, TextureLoader, CubeTextureLoader, AudioLoader } from 'three';
+
+import { FontLoader } from 'three/examples/jsm/loaders/FontLoader';
 import EventEmitter from 'wolfy87-eventemitter';
 
 export interface AssetConfig {
-  url: string;
+  url: string | string[];
   type: 'texture' | 'cubeTexture' | 'audio' | 'font' | 'json' | 'text';
   name: string;
   options?: any;
@@ -10,7 +12,7 @@ export interface AssetConfig {
 
 export interface Asset {
   name: string;
-  url: string;
+  url: string | string[];
   type: string;
   data: any;
   loaded: boolean;
@@ -109,7 +111,7 @@ export class AssetManager extends EventEmitter {
         case 'texture':
           data = await new Promise<Texture>((resolve, reject) => {
             this.textureLoader.load(
-              config.url,
+              config.url as string,
               resolve,
               undefined,
               reject
@@ -120,7 +122,7 @@ export class AssetManager extends EventEmitter {
         case 'cubeTexture':
           data = await new Promise<Texture>((resolve, reject) => {
             this.cubeTextureLoader.load(
-              config.url,
+              config.url as string[],
               resolve,
               undefined,
               reject
@@ -131,7 +133,7 @@ export class AssetManager extends EventEmitter {
         case 'audio':
           data = await new Promise<AudioBuffer>((resolve, reject) => {
             this.audioLoader.load(
-              config.url,
+              config.url as string,
               resolve,
               undefined,
               reject
@@ -142,7 +144,7 @@ export class AssetManager extends EventEmitter {
         case 'font':
           data = await new Promise<any>((resolve, reject) => {
             this.fontLoader.load(
-              config.url,
+              config.url as string,
               resolve,
               undefined,
               reject
@@ -151,12 +153,12 @@ export class AssetManager extends EventEmitter {
           break;
 
         case 'json':
-          const response = await fetch(config.url);
+          const response = await fetch(config.url as string);
           data = await response.json();
           break;
 
         case 'text':
-          const textResponse = await fetch(config.url);
+          const textResponse = await fetch(config.url as string);
           data = await textResponse.text();
           break;
 
@@ -224,3 +226,4 @@ export class AssetManager extends EventEmitter {
       errors: assets.filter(a => a.error).length,
     };
   }
+}

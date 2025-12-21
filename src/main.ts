@@ -15,6 +15,9 @@ enum AppPhase {
   SCENE = 'scene'
 }
 
+// Export for potential external use
+(window as any).AppPhase = AppPhase;
+
 class AppState {
   private currentPhase: AppPhase = AppPhase.HTML_CSS;
   private listeners: ((phase: AppPhase) => void)[] = [];
@@ -52,7 +55,7 @@ if (!crtCanvas) throw new Error('CRT canvas not found');
 // -----------------------------------------------------------------------------
 // GLOBAL EVENT EMITTER
 // -----------------------------------------------------------------------------
-const globalEmitter = new EventEmitter();
+export const globalEmitter = new EventEmitter();
 
 // -----------------------------------------------------------------------------
 // STATE

@@ -8,6 +8,8 @@ export interface SceneConfig {
   priority?: number;
 }
 
+
+
 export class SceneManager {
   private controller: Controller;
   private currentScenes: Map<string, BaseLayer> = new Map();
@@ -71,7 +73,7 @@ export class SceneManager {
   unloadScene(sceneName: string): void {
     const layer = this.currentScenes.get(sceneName);
     if (layer) {
-      this.controller.removeLayer(layer);
+      this.controller.removeLayer(sceneName); // Try removing by name first
       this.currentScenes.delete(sceneName);
       console.log(`Scene unloaded: ${sceneName}`);
 

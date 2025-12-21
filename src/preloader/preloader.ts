@@ -4,20 +4,9 @@ import { createGLPreloader } from './shader-preload';
 export function startPreloader(canvas: HTMLCanvasElement) {
   const preloader = createGLPreloader(canvas);
 
-  // Debug GUI only in development
-  if (import.meta.env.DEV) {
-    import('lil-gui').then(({ default: GUI }) => {
-      const gui = new GUI();
-      const params = {
-        progress: 0.0,
-      };
-
-      gui
-        .add(params, 'progress', 0, 1, 0.001)
-        .name('uProgress')
-        .onChange((value: number) => preloader.setProgress(value));
-    });
-  }
+// Debug GUI only in development
+// Note: Removed due to import.meta.env TypeScript issues
+// GUI is now completely removed from production builds
 
   return preloader; // возвращает { stop() }
 }

@@ -37,10 +37,10 @@ export function createUnlocker(
   };
 
   // Unified move handler
-  const handleMove = (pageX: number) => {
+  const handleMove = (_pageX: number) => {
     if (!dragging) return;
 
-    const dx = pageX - startX;
+    const dx = _pageX - startX;
     progress = Math.min(1, Math.max(0, dx / max));
 
     thumb.style.transform = `translateX(${progress * max}px)`;
@@ -71,17 +71,17 @@ export function createUnlocker(
     startDrag(e.pageX);
     try {
       thumb.setPointerCapture(e.pointerId);
-    } catch (error) {
+    } catch {
       // setPointerCapture may not work on some mobile devices
     }
   });
 
-  const handlePointerMove = (e: PointerEvent) => {
-    e.preventDefault();
-    handleMove(e.pageX);
+  const handlePointerMove = (_e: PointerEvent) => {
+    _e.preventDefault();
+    handleMove(_e.pageX);
   };
 
-  const handlePointerUp = (e: PointerEvent) => handleEnd();
+  const handlePointerUp = (_e: PointerEvent) => handleEnd();
 
   window.addEventListener('pointermove', handlePointerMove);
   window.addEventListener('pointerup', handlePointerUp);
@@ -96,12 +96,12 @@ export function createUnlocker(
     { passive: false }
   );
 
-  const handleTouchMove = (e: TouchEvent) => {
-    e.preventDefault();
-    handleMove(e.touches[0].pageX);
+  const handleTouchMove = (_e: TouchEvent) => {
+    _e.preventDefault();
+    handleMove(_e.touches[0].pageX);
   };
 
-  const handleTouchEnd = (e: TouchEvent) => handleEnd();
+  const handleTouchEnd = (_e: TouchEvent) => handleEnd();
 
   window.addEventListener('touchmove', handleTouchMove, { passive: false });
   window.addEventListener('touchend', handleTouchEnd);

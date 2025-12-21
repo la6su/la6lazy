@@ -5,7 +5,7 @@ interface Preloader {
   setScanlinePhase(value: number): void;
   setMode(value: number): void;
   stop(): void;
-  destroy(): void;
+  destroy?(): void;
 }
 
 let preloader: Preloader | null = null;

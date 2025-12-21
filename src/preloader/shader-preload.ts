@@ -1,6 +1,6 @@
 import crtVert from './shaders/crt.vs?raw';
 import crtFrag from './shaders/crt.fs?raw';
-import { getShaderSource } from '../utils/shader';
+// import { getShaderSource } from '../utils/shader'; // Not used in production
 
 export function createGLPreloader(canvas: HTMLCanvasElement) {
   // Try WebGL2 first, fallback to WebGL1
