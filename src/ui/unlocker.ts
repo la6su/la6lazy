@@ -1,3 +1,5 @@
+import { DOMUtils } from '../utils/dom';
+
 export function createUnlocker(
   el: HTMLElement,
   {
@@ -10,16 +12,12 @@ export function createUnlocker(
     onUnlock?: () => void;
   }
 ) {
-  const thumbEl = el.querySelector('.thumb');
-  const fillEl = el.querySelector('.fill');
-  const trackEl = el.querySelector('.track');
+  const thumb = DOMUtils.querySelector('.thumb', el, HTMLElement);
+  const fill = DOMUtils.querySelector('.fill', el, HTMLElement);
+  const track = DOMUtils.querySelector('.track', el, HTMLElement);
 
-  if (!thumbEl || !fillEl || !trackEl)
+  if (!thumb || !fill || !track)
     throw new Error('Unlocker elements not found');
-
-  const thumb = thumbEl as HTMLElement;
-  const fill = fillEl as HTMLElement;
-  const track = trackEl as HTMLElement;
 
   let dragging = false;
   let startX = 0;

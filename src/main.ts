@@ -1,25 +1,68 @@
 import { createCRTLoader } from './preloader/crt-bootstrap';
 import { createUnlocker } from './ui/unlocker';
+import EventEmitter from 'wolfy87-eventemitter';
+import { DOMUtils } from './utils/dom';
+
+// -----------------------------------------------------------------------------
+// APPLICATION PHASES
+// -----------------------------------------------------------------------------
+enum AppPhase {
+  HTML_CSS = 'html-css',
+  CRT_POWER_ON = 'crt-power-on',
+  IDLE = 'idle',
+  SCANLINE_LOADER = 'scanline-loader',
+  SCENE = 'scene'
+}
+
+class AppState {
+  private currentPhase: AppPhase = AppPhase.HTML_CSS;
+  private listeners: ((phase: AppPhase) => void)[] = [];
+
+  getCurrentPhase(): AppPhase {
+    return this.currentPhase;
+  }
+
+  setPhase(phase: AppPhase) {
+    if (this.currentPhase !== phase) {
+      console.log(`App phase transition: ${this.currentPhase} → ${phase}`);
+      this.currentPhase = phase;
+      this.listeners.forEach(listener => listener(phase));
+    }
+  }
+
+  onPhaseChange(listener: (phase: AppPhase) => void) {
+    this.listeners.push(listener);
+  }
+
+  removeListener(listener: (phase: AppPhase) => void) {
+    this.listeners = this.listeners.filter(l => l !== listener);
+  }
+}
 
 // -----------------------------------------------------------------------------
 // DOM
 // -----------------------------------------------------------------------------
-const mainCanvasEl = document.getElementById('main-canvas');
-const crtCanvasEl = document.getElementById('crt-canvas');
+const mainCanvas = DOMUtils.getElementById('main-canvas', HTMLCanvasElement);
+const crtCanvas = DOMUtils.getElementById('crt-canvas', HTMLCanvasElement);
 
-if (!mainCanvasEl || !(mainCanvasEl instanceof HTMLCanvasElement))
-  throw new Error('Main canvas not found');
-if (!crtCanvasEl || !(crtCanvasEl instanceof HTMLCanvasElement))
-  throw new Error('CRT canvas not found');
+if (!mainCanvas) throw new Error('Main canvas not found');
+if (!crtCanvas) throw new Error('CRT canvas not found');
 
-const mainCanvas = mainCanvasEl;
-const crtCanvas = crtCanvasEl;
+// -----------------------------------------------------------------------------
+// GLOBAL EVENT EMITTER
+// -----------------------------------------------------------------------------
+const globalEmitter = new EventEmitter();
 
 // -----------------------------------------------------------------------------
 // STATE
 // -----------------------------------------------------------------------------
+const appState = new AppState();
 let loadingStarted = false;
 let crt: Awaited<ReturnType<typeof createCRTLoader>> | null = null;
+
+// Export for use in other modules
+(window as any).appEmitter = globalEmitter;
+(window as any).appState = appState;
 
 // -----------------------------------------------------------------------------
 // INIT CRT
@@ -36,11 +79,16 @@ try {
   crt = null;
 }
 
+// Set initial phase
+appState.setPhase(AppPhase.HTML_CSS);
+
 // -----------------------------------------------------------------------------
 // CRT POWER-ON (fixed frames, no easing)
 // -----------------------------------------------------------------------------
 async function playCRTPowerOn(frames = 20) {
   if (!crt) return; // Skip if CRT failed to initialize
+
+  appState.setPhase(AppPhase.CRT_POWER_ON);
 
   let frame = 0;
 
@@ -55,6 +103,7 @@ async function playCRTPowerOn(frames = 20) {
       if (frame < frames) {
         requestAnimationFrame(tick);
       } else {
+        appState.setPhase(AppPhase.IDLE);
         resolve();
       }
     }
@@ -111,7 +160,7 @@ function startProgressSmoothing() {
 // -----------------------------------------------------------------------------
 // UNLOCK → REAL ASSET LOADING (scanline mode)
 // -----------------------------------------------------------------------------
-const unlockerEl = document.getElementById('unlocker');
+const unlockerEl = DOMUtils.getElementById('unlocker');
 
 if (!unlockerEl) throw new Error('Unlocker element not found');
 
@@ -119,7 +168,7 @@ createUnlocker(unlockerEl, {
   onStart: () => {
     if (loadingStarted) return;
     loadingStarted = true;
-    //  console.log('unlock start');
+    appState.setPhase(AppPhase.SCANLINE_LOADER);
 
     if (crt) crt.setMode('scanline');
 
@@ -139,6 +188,7 @@ createUnlocker(unlockerEl, {
       if (visualProgress > 0.995) {
         if (crt) crt.finish();
         crtCanvas.style.display = 'none';
+        appState.setPhase(AppPhase.SCENE);
       } else {
         requestAnimationFrame(waitForFinish);
       }
