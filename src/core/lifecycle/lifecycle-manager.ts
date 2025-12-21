@@ -57,6 +57,7 @@ export class LifecycleManager {
 
   private controller: Controller | null = null;
   private sceneClasses: Record<string, new (param: any) => any> = {};
+  private layerCache: Map<string, any> = new Map();
   private currentSceneName: string | null = null;
   private errorHandler: ErrorHandler;
   private memoryMonitor: MemoryMonitorService;
@@ -194,13 +195,21 @@ export class LifecycleManager {
    * Create and initialize scene
    */
   private async createAndInitializeScene(sceneName: string): Promise<any> {
+    // Check cache first
+    if (this.layerCache.has(sceneName)) {
+      const cachedScene = this.layerCache.get(sceneName);
+      this.controller!.addLayer(cachedScene);
+      return cachedScene;
+    }
+
     const SceneClass = this.sceneClasses[sceneName];
     if (!SceneClass) {
       throw new Error(`Scene class not found: ${sceneName}`);
     }
 
     const scene = new SceneClass({ name: sceneName, canvas: this.mainCanvas });
-    this.controller.addLayer(scene);
+    this.layerCache.set(sceneName, scene);
+    this.controller!.addLayer(scene);
     return scene;
   }
 
@@ -243,10 +252,6 @@ export class LifecycleManager {
 
     // Clean up current scene
     if (this.currentSceneName) {
-      const currentLayer = this.controller.getLayer(this.currentSceneName);
-      if (currentLayer && typeof currentLayer.dispose === 'function') {
-        currentLayer.dispose();
-      }
       this.controller.removeLayer(this.currentSceneName);
     }
 
