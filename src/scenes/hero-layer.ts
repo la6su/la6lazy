@@ -1,11 +1,20 @@
 import { Mesh, BoxGeometry, MeshBasicMaterial, AmbientLight } from 'three';
 import { BaseLayer } from 'ore-three';
 
+interface HeroLayerParam {
+  name: string;
+  canvas: HTMLCanvasElement;
+}
+
 export class HeroLayer extends BaseLayer {
-  constructor(param) {
-    super(param);
-    this.name = param.name || 'HeroLayer';
-    this.canvas = param.canvas;
+  box?: Mesh;
+  readyAnimate: boolean = false;
+
+  constructor(param: HeroLayerParam) {
+    super({
+      name: param.name || 'HeroLayer',
+      canvas: param.canvas,
+    });
   }
 
   onBind() {
@@ -29,7 +38,7 @@ export class HeroLayer extends BaseLayer {
     this.onResize();
   }
 
-  animate(deltaTime) {
+  animate(deltaTime: number) {
     if (this.box) {
       this.box.rotation.y += deltaTime;
     }

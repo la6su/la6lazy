@@ -1,11 +1,19 @@
-import { createCRTLoader } from './preloader/crt-bootstrap.js';
-import { createUnlocker } from './ui/unlocker.js';
+import { createCRTLoader } from './preloader/crt-bootstrap';
+import { createUnlocker } from './ui/unlocker';
 
 // -----------------------------------------------------------------------------
 // DOM
 // -----------------------------------------------------------------------------
-const mainCanvas = document.getElementById('main-canvas');
-const crtCanvas = document.getElementById('crt-canvas');
+const mainCanvasEl = document.getElementById('main-canvas');
+const crtCanvasEl = document.getElementById('crt-canvas');
+
+if (!mainCanvasEl || !(mainCanvasEl instanceof HTMLCanvasElement))
+  throw new Error('Main canvas not found');
+if (!crtCanvasEl || !(crtCanvasEl instanceof HTMLCanvasElement))
+  throw new Error('CRT canvas not found');
+
+const mainCanvas = mainCanvasEl;
+const crtCanvas = crtCanvasEl;
 
 // -----------------------------------------------------------------------------
 // STATE
@@ -29,7 +37,7 @@ async function playCRTPowerOn(frames = 20) {
   crt.setMode('boot');
   crt.setProgress(0);
 
-  return new Promise(resolve => {
+  return new Promise<void>(resolve => {
     function tick() {
       frame++;
       crt.setProgress(Math.min(1, frame / frames));
@@ -52,13 +60,13 @@ await playCRTPowerOn();
 // -----------------------------------------------------------------------------
 let visualProgress = 0;
 let targetProgress = 0;
-let rafId = null;
+let rafId: number | null = null;
 
 /**
  * Запросить изменение прогресса загрузки.
  * Прогресс всегда монотонный (не откатывается назад).
  */
-function setLoadProgress(value) {
+function setLoadProgress(value: number) {
   targetProgress = Math.min(1, Math.max(targetProgress, value));
   startProgressSmoothing();
 }
@@ -86,14 +94,18 @@ function startProgressSmoothing() {
 // PRELOAD MINIMUM (без визуального loader)
 // -----------------------------------------------------------------------------
 (async function preloadMinimal() {
-  await import('./preloader/shader-preload.js');
-  await import('./preloader/preloader.js');
+  await import('./preloader/shader-preload');
+  await import('./preloader/preloader');
 })();
 
 // -----------------------------------------------------------------------------
 // UNLOCK → REAL ASSET LOADING (scanline mode)
 // -----------------------------------------------------------------------------
-createUnlocker(document.getElementById('unlocker'), {
+const unlockerEl = document.getElementById('unlocker');
+
+if (!unlockerEl) throw new Error('Unlocker element not found');
+
+createUnlocker(unlockerEl, {
   onStart: () => {
     if (loadingStarted) return;
     loadingStarted = true;
@@ -104,7 +116,7 @@ createUnlocker(document.getElementById('unlocker'), {
     // стартуем загрузку, но не ждём
     void startSceneLoading();
   },
-  onProgress: p => {
+  onProgress: (p: any) => {
     // console.log('unlock progress', p);
     crt.setScanlinePhase(p);
   },
@@ -133,7 +145,7 @@ async function startSceneLoading() {
   const { Controller } = await import('ore-three');
   setLoadProgress(0.5);
 
-  const { HeroLayer } = await import('./scenes/hero-layer.js');
+  const { HeroLayer } = await import('./scenes/hero-layer');
   setLoadProgress(0.8);
 
   const controller = new Controller({
