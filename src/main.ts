@@ -206,29 +206,51 @@ createUnlocker(unlockerEl, {
 // -----------------------------------------------------------------------------
 async function startSceneLoading() {
   const { Controller } = await import('ore-three');
-  setLoadProgress(0.5);
+  const { SceneManager } = await import('./scenes/scene-manager');
+  const { AssetManager } = await import('./utils/asset-manager');
 
-  const { HeroLayer } = await import('./scenes/hero-layer');
-  setLoadProgress(0.8);
+  setLoadProgress(0.3);
 
   const controller = new Controller({
     pointerEventElement: mainCanvas!,
   });
 
-  controller.addLayer(
-    new HeroLayer({
-      name: 'HeroLayer',
-      canvas: mainCanvas!,
-    })
-  );
+  setLoadProgress(0.5);
+
+  // Initialize managers
+  const sceneManager = new SceneManager(controller, mainCanvas!);
+  const assetManager = AssetManager.getInstance();
+
+  // Register scenes
+  const { HeroLayer } = await import('./scenes/hero-layer');
+  const { DemoLayer } = await import('./scenes/demo-layer');
+
+  sceneManager.registerScene({
+    name: 'hero',
+    layerClass: HeroLayer,
+  });
+
+  sceneManager.registerScene({
+    name: 'demo',
+    layerClass: DemoLayer,
+  });
+
+  setLoadProgress(0.8);
+
+  // Load initial scene
+  await sceneManager.loadScene('hero');
 
   setLoadProgress(1);
+
+  // Export managers for global access
+  (window as any).sceneManager = sceneManager;
+  (window as any).assetManager = assetManager;
 }
 
 // -----------------------------------------------------------------------------
 // MEMORY MONITORING (dev only)
 // -----------------------------------------------------------------------------
-if (import.meta.env.DEV && MemoryMonitor.isSupported()) {
+if (MemoryMonitor.isSupported()) {
   const memoryMonitor = MemoryMonitor.getInstance();
   memoryMonitor.startMonitoring(10000); // Check every 10 seconds
 

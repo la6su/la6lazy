@@ -50,7 +50,18 @@ src/
 │   └─ shader-preload.ts     # Shader Preloader - imoports and compiles shaders (CRT + scanline) from shaders dir
 │
 ├─ scenes/
-│   └─ hero-layer.ts         # ore-three v5 BaseLayer (lazy-loaded)
+│   ├─ scene-manager.ts      # Scene management system for multiple scenes
+│   ├─ hero-layer.ts         # ore-three v5 BaseLayer (lazy-loaded)
+│   └─ *-layer.ts            # Additional scene layers
+│
+├─ utils/
+│   ├─ dom.ts                # DOM manipulation utilities
+│   ├─ memory.ts             # Memory monitoring and management
+│   ├─ shader.ts             # Shader optimization utilities
+│   └─ asset-manager.ts      # Asset loading and caching system
+│
+├─ ui/
+│   └─ unlocker.ts           # Interactive unlocker component
 │
 ├─ main.ts                   # App orchestration / state transitions
 │
@@ -251,6 +262,87 @@ Scene code must:
 - ❌ never manage RAF
 - ✅ only control Three.js objects
 - ✅ rely on ore-three lifecycle
+
+---
+
+## Scene Management
+
+Multiple scenes are supported through `SceneManager`:
+
+```typescript
+// Register scenes
+sceneManager.registerScene({
+  name: 'hero',
+  layerClass: HeroLayer,
+});
+
+sceneManager.registerScene({
+  name: 'demo',
+  layerClass: DemoLayer,
+});
+
+// Switch scenes
+await sceneManager.switchScene('demo');
+
+// Listen to scene events
+globalEmitter.on('sceneLoaded', ({ sceneName, layer }) => {
+  console.log(`Scene ${sceneName} loaded`);
+});
+```
+
+### Scene Registration
+
+- Scenes are registered with unique names
+- Each scene extends `BaseLayer`
+- Scenes can specify asset dependencies
+- Scene switching unloads current scenes automatically
+
+### Scene Lifecycle
+
+- Scenes are loaded on-demand
+- Automatic cleanup when switching
+- Event-driven communication
+- Memory-efficient scene management
+
+---
+
+## Asset Management
+
+Assets are managed through `AssetManager` with caching and lazy loading:
+
+```typescript
+// Load assets
+await assetManager.loadAsset({
+  name: 'texture1',
+  url: '/textures/brick.jpg',
+  type: 'texture'
+});
+
+// Get cached asset
+const texture = assetManager.getAsset('texture1');
+
+// Load multiple assets
+await assetManager.loadAssets([
+  { name: 'model', url: '/models/cube.glb', type: 'gltf' },
+  { name: 'sound', url: '/audio/ambient.mp3', type: 'audio' }
+]);
+```
+
+### Supported Asset Types
+
+- `texture` - Three.js textures
+- `cubeTexture` - Cube textures
+- `audio` - Audio buffers
+- `font` - Font data
+- `json` - JSON data
+- `text` - Plain text
+
+### Asset Caching
+
+- Automatic caching prevents duplicate loads
+- Progress tracking for loading operations
+- Error handling with detailed messages
+- Memory-efficient asset storage
 
 ---
 
