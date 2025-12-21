@@ -192,29 +192,34 @@ export class AppController {
   }
 
   /**
+   * Load module with progress tracking
+   */
+  private async loadWithProgress(modulePath: string, targetProgress: number): Promise<any> {
+    const module = await import(modulePath);
+    this.progressController.setTargetProgress(targetProgress);
+    return module;
+  }
+
+  /**
    * Start scene loading pipeline
    */
   private async startSceneLoading(): Promise<void> {
-    const { Controller } = await import('ore-three');
-
-    this.progressController.setTargetProgress(0.3);
+    // Load ore-three with progress
+    const oreThree = await this.loadWithProgress('ore-three', 0.3);
+    const { Controller } = oreThree;
 
     this.controller = new Controller({
       pointerEventElement: this.mainCanvas,
     });
 
-    this.progressController.setTargetProgress(0.5);
-
-    // Register scenes
-    const { HeroLayer } = await import('../scenes/hero-layer');
-    const { DemoLayer } = await import('../scenes/demo-layer');
+    // Load hero scene (initial scene)
+    const heroModule = await this.loadWithProgress('../scenes/hero-layer', 0.7);
+    const { HeroLayer } = heroModule;
 
     this.sceneClasses = {
       hero: HeroLayer,
-      demo: DemoLayer,
+      // demo will be loaded lazily on first access
     };
-
-    this.progressController.setTargetProgress(0.8);
 
     // Load initial scene
     await this.switchToScene('hero');
@@ -249,6 +254,18 @@ export class AppController {
    */
   async switchToScene(sceneName: string): Promise<void> {
     if (!this.controller) return;
+
+    // Check if scene class is loaded, load lazily if needed
+    if (!this.sceneClasses[sceneName]) {
+      if (sceneName === 'demo') {
+        // Lazy load demo scene
+        const demoModule = await import('../scenes/demo-layer');
+        this.sceneClasses[sceneName] = demoModule.DemoLayer;
+      } else {
+        console.warn(`Unknown scene: ${sceneName}`);
+        return;
+      }
+    }
 
     // Clean up current scene
     if (this.currentSceneName) {
