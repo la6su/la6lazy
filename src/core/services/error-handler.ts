@@ -83,10 +83,5 @@ export class ErrorHandler {
     document.body.appendChild(fallback);
   }
 
-  /**
-   * Test fallback UI (temporary method for testing)
-   */
-  testFallbackUI(): void {
-    this.showFallbackUI({ message: 'Test WebGL error for UI testing' });
-  }
+
 }

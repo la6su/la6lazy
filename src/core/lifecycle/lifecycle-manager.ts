@@ -35,6 +35,22 @@ const exportToGlobal = (controller: any, switchToSceneFn: Function) => {
   (window as any).switchToScene = switchToSceneFn;
 };
 
+// Pure functions for scene management
+const cleanupCurrentScene = (controller: any, currentSceneName: string | null) => {
+  if (!currentSceneName) return;
+  const currentLayer = controller.getLayer(currentSceneName);
+  if (currentLayer && typeof currentLayer.dispose === 'function') {
+    currentLayer.dispose();
+  }
+  controller.removeLayer(currentSceneName);
+};
+
+const createAndAddScene = (controller: any, SceneClass: any, sceneName: string, canvas: HTMLCanvasElement) => {
+  const scene = new SceneClass({ name: sceneName, canvas });
+  controller.addLayer(scene);
+  return scene;
+};
+
 /**
  * Configuration interfaces for better organization
  */
@@ -180,8 +196,6 @@ export class LifecycleManager {
     exportToGlobal(this.controller, this.switchToScene.bind(this));
   }
 
-
-
   /**
    * Wait for scene to be ready and finish CRT
    */
@@ -208,42 +222,27 @@ export class LifecycleManager {
   }
 
   /**
-   * Switch to scene
+   * Switch to scene using functional composition
    */
   async switchToScene(sceneName: string): Promise<void> {
     if (!this.controller) return;
 
-    // Check if scene class is loaded, load lazily if needed
+    // Check if scene class exists
     if (!this.sceneClasses[sceneName]) {
       console.warn(`Unknown scene: ${sceneName}`);
       return;
     }
 
     // Clean up current scene
-    if (this.currentSceneName) {
-      const currentLayer = this.controller.getLayer(this.currentSceneName);
-      if (currentLayer && typeof currentLayer.dispose === 'function') {
-        currentLayer.dispose();
-      }
-      this.controller.removeLayer(this.currentSceneName);
-    }
+    cleanupCurrentScene(this.controller, this.currentSceneName);
 
-    // Create new scene
+    // Create and add new scene
     const SceneClass = this.sceneClasses[sceneName];
-    if (SceneClass) {
-      const scene = new SceneClass({
-        name: sceneName,
-        canvas: this.mainCanvas,
-      });
+    const scene = createAndAddScene(this.controller, SceneClass, sceneName, this.mainCanvas);
 
-      this.controller.addLayer(scene);
-      this.currentSceneName = sceneName;
-      this.globalEmitter.emit('sceneChanged', {
-        sceneName,
-        layer: scene,
-      });
-      console.log(`Switched to scene: ${sceneName}`);
-    }
+    this.currentSceneName = sceneName;
+    this.globalEmitter.emit('sceneChanged', { sceneName, layer: scene });
+    console.log(`Switched to scene: ${sceneName}`);
   }
 
   /**
