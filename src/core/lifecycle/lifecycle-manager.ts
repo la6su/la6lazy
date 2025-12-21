@@ -130,7 +130,7 @@ export class LifecycleManager {
     });
 
     // Load hero scene (initial scene)
-    const heroModule = await this.loadWithProgress('../scenes/hero-layer', 0.7);
+    const heroModule = await this.loadWithProgress('../../scenes/hero-layer', 0.7);
     const { HeroLayer } = heroModule;
 
     this.sceneClasses = {
