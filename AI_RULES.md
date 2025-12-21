@@ -43,31 +43,34 @@ No frontend frameworks (React / Vue / etc.) are used.
 src/
 │
 ├─ preloader/
-│   ├─ shaders/              # CRT loader fragment and vertex shaderers dir (CRT + scanline)
+│   ├─ shaders/              # CRT loader fragment and vertex shaders dir (CRT + scanline)
 │   ├─ crt-bootstrap.ts      # CRT loader public API (worker / fallback)
 │   ├─ crt-worker.ts         # OffscreenCanvas WebGL worker
 │   ├─ preloader.ts          # Scanline loader logic
-│   └─ shader-preload.ts     # Shader Preloader - imoports and compiles shaders (CRT + scanline) from shaders dir
+│   └─ shader-preload.ts     # Shader Preloader - imports and compiles shaders (CRT + scanline) from shaders dir
 │
 ├─ scenes/
-│   ├─ scene-manager.ts      # Scene management using ore-three Controller
 │   ├─ hero-layer.ts         # ore-three v5 BaseLayer (lazy-loaded)
 │   └─ *-layer.ts            # Additional scene layers
 │
 ├─ core/
+│   ├─ app-controller.ts     # Application facade with composition
+│   ├─ lifecycle-manager.ts  # Main lifecycle orchestration (functional composition)
 │   ├─ app-state.ts          # Application state management
 │   └─ progress-controller.ts # Progress animation controller
+│   └─ services/             # Dedicated services
+│     ├─ error-handler.ts    # Error handling and fallback UI
+│     └─ memory-monitor.ts   # Memory monitoring service
 │
 ├─ utils/
 │   ├─ dom.ts                # DOM manipulation utilities
 │   ├─ memory.ts             # Memory monitoring and management
-│   ├─ shader.ts             # Shader optimization utilities
 │   └─ asset-manager.ts      # Asset loading and caching system
 │
 ├─ ui/
 │   └─ unlocker.ts           # Interactive unlocker component
 │
-├─ main.ts                   # App orchestration / state transitions
+├─ main.ts                   # App orchestration / CRT initialization
 │
 ├─ index.html                # Minimal HTML
 │
@@ -75,7 +78,59 @@ src/
 └─ package.json
 ```
 
-This structure is **intentional and must not be flattened**.
+This structure follows **Composition Pattern**, **Configuration Object Pattern**, and **Functional Programming** principles.
+
+---
+
+## Architecture Patterns
+
+### Composition Pattern
+
+The application uses **Composition over Inheritance**:
+
+- `AppController` composes `LifecycleManager` instead of inheriting from a base class
+- `LifecycleManager` composes services (`ErrorHandler`, `MemoryMonitorService`)
+- Services are injected via constructor, enabling easy testing and replacement
+
+### Configuration Object Pattern
+
+Complex configurations are grouped into typed interfaces:
+
+```typescript
+interface LifecycleManagerConfig {
+  events: EventsConfig;      // { globalEmitter }
+  state: StateConfig;        // { appState, progressController }
+  ui: UIConfig;             // { mainCanvas, crtCanvas, unlockerEl }
+}
+```
+
+Benefits:
+- **Type Safety**: Strict TypeScript interfaces
+- **Readability**: Logical grouping of related parameters
+- **Maintainability**: Easy to extend without breaking existing code
+
+### Functional Composition
+
+Scene loading uses **pure functions** for better testability:
+
+```typescript
+// Pure functions for functional composition
+const createOreController = async (mainCanvas: HTMLCanvasElement) => {
+  const { Controller } = await import('ore-three');
+  return new Controller({ pointerEventElement: mainCanvas });
+};
+
+const loadHeroScene = async (progressController: ProgressController) => {
+  const heroModule = await import('../../scenes/hero-layer');
+  progressController.setTargetProgress(0.7);
+  return { hero: heroModule.HeroLayer };
+};
+```
+
+Benefits:
+- **Testability**: Pure functions can be unit tested independently
+- **Reusability**: Functions can be composed in different ways
+- **Debugging**: Easier to isolate issues in small functions
 
 ---
 
@@ -271,40 +326,55 @@ Scene code must:
 
 ## Scene Management
 
-Multiple scenes are managed directly through ore-three `Controller`:
+Scenes are managed through `LifecycleManager` with **Functional Composition**:
 
 ```typescript
-// Controller manages scenes natively
-const controller = new Controller({
-  pointerEventElement: canvas,
-});
+// Pure functions for scene management
+const createOreController = async (mainCanvas: HTMLCanvasElement) => {
+  const { Controller } = await import('ore-three');
+  return new Controller({ pointerEventElement: mainCanvas });
+};
 
-// Switch scenes
-await switchToScene('demo');
+const loadHeroScene = async (progressController: ProgressController) => {
+  const heroModule = await import('../../scenes/hero-layer');
+  progressController.setTargetProgress(0.7);
+  return { hero: heroModule.HeroLayer };
+};
 
-// Global functions for scene management
-(window as any).switchToScene = switchToScene;
-(window as any).controller = controller;
+const initializeScene = async (controller, sceneClasses, canvas, sceneName) => {
+  const SceneClass = sceneClasses[sceneName];
+  const scene = new SceneClass({ name: sceneName, canvas });
+  controller.addLayer(scene);
+  return scene;
+};
 
-// Listen to scene events
-globalEmitter.on('sceneChanged', ({ sceneName, layer }) => {
-  console.log(`Scene changed to: ${sceneName}`);
-});
+// Composed in LifecycleManager
+private async startSceneLoading(): Promise<void> {
+  this.controller = await createOreController(this.mainCanvas);
+  this.progressController.setTargetProgress(0.3);
+
+  this.sceneClasses = await loadHeroScene(this.progressController);
+  await initializeScene(this.controller, this.sceneClasses, this.mainCanvas, 'hero');
+
+  this.progressController.setTargetProgress(1);
+  exportToGlobal(this.controller, this.switchToScene.bind(this));
+}
 ```
 
-### Controller-based Scene Management
+### Functional Scene Management
 
-- Uses ore-three v5 `Controller.addLayer()` and `Controller.removeLayer()`
-- Each scene is a `BaseLayer` with its own renderer, scene, camera
-- Simple scene registry with class constructors
-- Direct API calls without wrapper abstractions
+- **Pure Functions**: Each operation is a testable, side-effect-free function
+- **Direct Controller Usage**: ore-three v5 `Controller.addLayer()` / `Controller.removeLayer()`
+- **Composition Pattern**: Functions composed together for complex workflows
+- **Type Safety**: Full TypeScript support with proper interfaces
 
 ### Scene Lifecycle
 
-- Scenes created on-demand with `new SceneClass()`
-- Automatic cleanup via `controller.removeLayer()`
-- Event-driven notifications via global emitter
-- Minimal memory footprint with single active scene
+- Scenes loaded via functional composition in `startSceneLoading()`
+- Scene switching via `switchToScene()` with cleanup functions
+- Event-driven notifications through global emitter
+- Registry-based scene management with class constructors
+- Automatic resource cleanup on scene changes
 
 ---
 
