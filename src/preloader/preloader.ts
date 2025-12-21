@@ -1,8 +1,8 @@
-import {createGLPreloader} from './shader-preload';
+import { createGLPreloader } from './shader-preload';
 // This file wraps the raw WebGL preloader for lifecycle control.
 // The actual shader logic lives in shader-preload.ts.
 export function startPreloader(canvas: HTMLCanvasElement) {
-    // Debug GUI only in development
+  // Debug GUI only in development
   // Note: Removed due to import.meta.env TypeScript issues
   // GUI is now completely removed from production builds
 

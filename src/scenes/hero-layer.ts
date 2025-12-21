@@ -48,5 +48,4 @@ export class HeroLayer extends BaseLayer {
       this.renderer.render(this.scene, this.camera);
     }
   }
- 
 }

@@ -98,13 +98,14 @@ Complex configurations are grouped into typed interfaces:
 
 ```typescript
 interface LifecycleManagerConfig {
-  events: EventsConfig;      // { globalEmitter }
-  state: StateConfig;        // { appState, progressController }
-  ui: UIConfig;             // { mainCanvas, crtCanvas, unlockerEl }
+  events: EventsConfig; // { globalEmitter }
+  state: StateConfig; // { appState, progressController }
+  ui: UIConfig; // { mainCanvas, crtCanvas, unlockerEl }
 }
 ```
 
 Benefits:
+
 - **Type Safety**: Strict TypeScript interfaces
 - **Readability**: Logical grouping of related parameters
 - **Maintainability**: Easy to extend without breaking existing code
@@ -120,7 +121,10 @@ const createOreController = async (mainCanvas: HTMLCanvasElement) => {
   return new Controller({ pointerEventElement: mainCanvas });
 };
 
-const loadSceneModules = async (sceneNames: string[], progressController: ProgressController) => {
+const loadSceneModules = async (
+  sceneNames: string[],
+  progressController: ProgressController
+) => {
   const sceneClasses: Record<string, any> = {};
   const totalScenes = sceneNames.length;
 
@@ -147,7 +151,7 @@ const loadSceneModules = async (sceneNames: string[], progressController: Progre
     sceneClasses[sceneName] = module[className];
 
     // Update progress incrementally
-    progressController.setTargetProgress(0.3 + (0.4 * (i + 1) / totalScenes));
+    progressController.setTargetProgress(0.3 + (0.4 * (i + 1)) / totalScenes);
   }
 
   return sceneClasses;
@@ -171,6 +175,7 @@ const createAndInitializeScene = async (
 ```
 
 Benefits:
+
 - **Testability**: Pure functions can be unit tested independently
 - **Reusability**: Functions can be composed in different ways
 - **Debugging**: Easier to isolate issues in small functions
