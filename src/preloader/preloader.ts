@@ -4,9 +4,9 @@ import { createGLPreloader } from './shader-preload';
 export function startPreloader(canvas: HTMLCanvasElement) {
   const preloader = createGLPreloader(canvas);
 
-// Debug GUI only in development
-// Note: Removed due to import.meta.env TypeScript issues
-// GUI is now completely removed from production builds
+  // Debug GUI only in development
+  // Note: Removed due to import.meta.env TypeScript issues
+  // GUI is now completely removed from production builds
 
   return preloader; // возвращает { stop() }
 }

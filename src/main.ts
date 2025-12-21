@@ -12,7 +12,7 @@ enum AppPhase {
   CRT_POWER_ON = 'crt-power-on',
   IDLE = 'idle',
   SCANLINE_LOADER = 'scanline-loader',
-  SCENE = 'scene'
+  SCENE = 'scene',
 }
 
 // Export for potential external use
@@ -205,48 +205,75 @@ createUnlocker(unlockerEl, {
 });
 
 // -----------------------------------------------------------------------------
+// SCENE MANAGEMENT
+// -----------------------------------------------------------------------------
+let controller: any = null;
+let currentScene: any = null;
+const assetManager = (
+  await import('./utils/asset-manager')
+).AssetManager.getInstance();
+
+// Scene registry
+const sceneClasses: Record<string, any> = {};
+
+async function registerScenes() {
+  const { HeroLayer } = await import('./scenes/hero-layer');
+  const { DemoLayer } = await import('./scenes/demo-layer');
+
+  sceneClasses.hero = HeroLayer;
+  sceneClasses.demo = DemoLayer;
+}
+
+async function switchToScene(sceneName: string) {
+  if (!controller) return;
+
+  // Remove current scene if exists
+  if (currentScene) {
+    controller.removeLayer(currentScene.name);
+    currentScene = null;
+  }
+
+  // Create and add new scene
+  const SceneClass = sceneClasses[sceneName];
+  if (SceneClass) {
+    currentScene = new SceneClass({
+      name: sceneName,
+      canvas: mainCanvas!,
+    });
+    controller.addLayer(currentScene);
+
+    globalEmitter.emit('sceneChanged', { sceneName, layer: currentScene });
+    console.log(`Switched to scene: ${sceneName}`);
+  }
+}
+
+// -----------------------------------------------------------------------------
 // SCENE LOADING PIPELINE
 // -----------------------------------------------------------------------------
 async function startSceneLoading() {
   const { Controller } = await import('ore-three');
-  const { SceneManager } = await import('./scenes/scene-manager');
-  const { AssetManager } = await import('./utils/asset-manager');
 
   setLoadProgress(0.3);
 
-  const controller = new Controller({
+  controller = new Controller({
     pointerEventElement: mainCanvas!,
   });
 
   setLoadProgress(0.5);
 
-  // Initialize managers
-  const sceneManager = new SceneManager(controller, mainCanvas!);
-  const assetManager = AssetManager.getInstance();
-
-  // Register scenes
-  const { HeroLayer } = await import('./scenes/hero-layer');
-  const { DemoLayer } = await import('./scenes/demo-layer');
-
-  sceneManager.registerScene({
-    name: 'hero',
-    layerClass: HeroLayer,
-  });
-
-  sceneManager.registerScene({
-    name: 'demo',
-    layerClass: DemoLayer,
-  });
+  // Register available scenes
+  await registerScenes();
 
   setLoadProgress(0.8);
 
   // Load initial scene
-  await sceneManager.loadScene('hero');
+  await switchToScene('hero');
 
   setLoadProgress(1);
 
-  // Export managers for global access
-  (window as any).sceneManager = sceneManager;
+  // Export for global access
+  (window as any).controller = controller;
+  (window as any).switchToScene = switchToScene;
   (window as any).assetManager = assetManager;
 }
 
@@ -257,8 +284,10 @@ if (MemoryMonitor.isSupported()) {
   const memoryMonitor = MemoryMonitor.getInstance();
   memoryMonitor.startMonitoring(10000); // Check every 10 seconds
 
-  memoryMonitor.onMemoryUpdate((info) => {
-    console.log(`Memory: ${formatBytes(info.usedJSHeapSize)} / ${formatBytes(info.jsHeapSizeLimit)}`);
+  memoryMonitor.onMemoryUpdate(info => {
+    console.log(
+      `Memory: ${formatBytes(info.usedJSHeapSize)} / ${formatBytes(info.jsHeapSizeLimit)}`
+    );
   });
 
   // Export for debugging

@@ -50,7 +50,6 @@ src/
 │   └─ shader-preload.ts     # Shader Preloader - imoports and compiles shaders (CRT + scanline) from shaders dir
 │
 ├─ scenes/
-│   ├─ scene-manager.ts      # Scene management system for multiple scenes
 │   ├─ hero-layer.ts         # ore-three v5 BaseLayer (lazy-loaded)
 │   └─ *-layer.ts            # Additional scene layers
 │
@@ -267,42 +266,40 @@ Scene code must:
 
 ## Scene Management
 
-Multiple scenes are supported through `SceneManager`:
+Multiple scenes are managed directly through ore-three `Controller`:
 
 ```typescript
-// Register scenes
-sceneManager.registerScene({
-  name: 'hero',
-  layerClass: HeroLayer,
-});
-
-sceneManager.registerScene({
-  name: 'demo',
-  layerClass: DemoLayer,
+// Controller manages scenes natively
+const controller = new Controller({
+  pointerEventElement: canvas,
 });
 
 // Switch scenes
-await sceneManager.switchScene('demo');
+await switchToScene('demo');
+
+// Global functions for scene management
+(window as any).switchToScene = switchToScene;
+(window as any).controller = controller;
 
 // Listen to scene events
-globalEmitter.on('sceneLoaded', ({ sceneName, layer }) => {
-  console.log(`Scene ${sceneName} loaded`);
+globalEmitter.on('sceneChanged', ({ sceneName, layer }) => {
+  console.log(`Scene changed to: ${sceneName}`);
 });
 ```
 
-### Scene Registration
+### Controller-based Scene Management
 
-- Scenes are registered with unique names
-- Each scene extends `BaseLayer`
-- Scenes can specify asset dependencies
-- Scene switching unloads current scenes automatically
+- Uses ore-three v5 `Controller.addLayer()` and `Controller.removeLayer()`
+- Each scene is a `BaseLayer` with its own renderer, scene, camera
+- Simple scene registry with class constructors
+- Direct API calls without wrapper abstractions
 
 ### Scene Lifecycle
 
-- Scenes are loaded on-demand
-- Automatic cleanup when switching
-- Event-driven communication
-- Memory-efficient scene management
+- Scenes created on-demand with `new SceneClass()`
+- Automatic cleanup via `controller.removeLayer()`
+- Event-driven notifications via global emitter
+- Minimal memory footprint with single active scene
 
 ---
 

@@ -18,7 +18,9 @@ export class DOMUtils {
     }
 
     if (expectedType && !(element instanceof expectedType)) {
-      console.error(`Element with id '${id}' is not an instance of ${expectedType.name}`);
+      console.error(
+        `Element with id '${id}' is not an instance of ${expectedType.name}`
+      );
       return null;
     }
 
@@ -41,7 +43,9 @@ export class DOMUtils {
     }
 
     if (expectedType && !(element instanceof expectedType)) {
-      console.error(`Element with selector '${selector}' is not an instance of ${expectedType.name}`);
+      console.error(
+        `Element with selector '${selector}' is not an instance of ${expectedType.name}`
+      );
       return null;
     }
 
@@ -105,13 +109,21 @@ export class DOMUtils {
    */
   static isVisible(element: Element): boolean {
     const style = window.getComputedStyle(element);
-    return style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0';
+    return (
+      style.display !== 'none' &&
+      style.visibility !== 'hidden' &&
+      style.opacity !== '0'
+    );
   }
 
   /**
    * Set element opacity with optional transition
    */
-  static setOpacity(element: Element, opacity: number, transition?: string): void {
+  static setOpacity(
+    element: Element,
+    opacity: number,
+    transition?: string
+  ): void {
     const htmlElement = element as HTMLElement;
     htmlElement.style.opacity = opacity.toString();
 

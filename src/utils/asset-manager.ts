@@ -171,7 +171,6 @@ export class AssetManager extends EventEmitter {
 
       this.emit('assetLoaded', asset);
       return data;
-
     } catch (error) {
       asset.error = (error as Error).message;
       this.emit('assetError', { asset, error });
@@ -201,7 +200,9 @@ export class AssetManager extends EventEmitter {
   getLoadingProgress(): number {
     if (this.cache.size === 0) return 1;
 
-    const loaded = Array.from(this.cache.values()).filter(asset => asset.loaded).length;
+    const loaded = Array.from(this.cache.values()).filter(
+      asset => asset.loaded
+    ).length;
     return loaded / this.cache.size;
   }
 
@@ -217,7 +218,12 @@ export class AssetManager extends EventEmitter {
   /**
    * Get cache info
    */
-  getCacheInfo(): { total: number; loaded: number; loading: number; errors: number } {
+  getCacheInfo(): {
+    total: number;
+    loaded: number;
+    loading: number;
+    errors: number;
+  } {
     const assets = Array.from(this.cache.values());
     return {
       total: assets.length,

@@ -1,4 +1,10 @@
-import { Mesh, SphereGeometry, MeshPhongMaterial, DirectionalLight, PointLight } from 'three';
+import {
+  Mesh,
+  SphereGeometry,
+  MeshPhongMaterial,
+  DirectionalLight,
+  PointLight,
+} from 'three';
 import { BaseLayer } from 'ore-three';
 
 interface DemoLayerParam {
@@ -41,7 +47,7 @@ export class DemoLayer extends BaseLayer {
       new MeshPhongMaterial({
         color: 0x0088ff,
         shininess: 100,
-        specular: 0x111111
+        specular: 0x111111,
       })
     );
 

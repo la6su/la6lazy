@@ -16,8 +16,7 @@ export function createUnlocker(
   const fill = DOMUtils.querySelector('.fill', el, HTMLElement);
   const track = DOMUtils.querySelector('.track', el, HTMLElement);
 
-  if (!thumb || !fill || !track)
-    throw new Error('Unlocker elements not found');
+  if (!thumb || !fill || !track) throw new Error('Unlocker elements not found');
 
   let dragging = false;
   let startX = 0;

@@ -211,7 +211,12 @@ export class WebGLMemoryManager {
   /**
    * Get memory usage info (approximate)
    */
-  getMemoryInfo(): { textures: number; buffers: number; framebuffers: number; programs: number } {
+  getMemoryInfo(): {
+    textures: number;
+    buffers: number;
+    framebuffers: number;
+    programs: number;
+  } {
     return {
       textures: this.textures.size,
       buffers: this.buffers.size,

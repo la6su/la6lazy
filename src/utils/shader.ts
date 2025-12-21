@@ -6,17 +6,19 @@
  * Minify GLSL shader source code
  */
 export function minifyShader(source: string): string {
-  return source
-    // Remove single-line comments
-    .replace(/\/\/.*$/gm, '')
-    // Remove multi-line comments
-    .replace(/\/\*[\s\S]*?\*\//g, '')
-    // Remove extra whitespace and newlines
-    .replace(/\s+/g, ' ')
-    // Remove spaces around operators
-    .replace(/\s*([=<>!&|+-/*%])\s*/g, '$1')
-    // Remove trailing/leading whitespace
-    .trim();
+  return (
+    source
+      // Remove single-line comments
+      .replace(/\/\/.*$/gm, '')
+      // Remove multi-line comments
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      // Remove extra whitespace and newlines
+      .replace(/\s+/g, ' ')
+      // Remove spaces around operators
+      .replace(/\s*([=<>!&|+-/*%])\s*/g, '$1')
+      // Remove trailing/leading whitespace
+      .trim()
+  );
 }
 
 /**

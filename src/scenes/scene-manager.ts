@@ -8,8 +8,6 @@ export interface SceneConfig {
   priority?: number;
 }
 
-
-
 export class SceneManager {
   private controller: Controller;
   private currentScenes: Map<string, BaseLayer> = new Map();
@@ -60,7 +58,6 @@ export class SceneManager {
 
       // Emit scene loaded event
       globalEmitter.emit('sceneLoaded', { sceneName, layer });
-
     } catch (error) {
       console.error(`Failed to load scene '${sceneName}':`, error);
       throw error;
@@ -149,6 +146,9 @@ export class SceneManager {
     for (const sceneName of this.currentScenes.keys()) {
       this.unloadScene(sceneName);
     }
-    globalEmitter.removeListener('changeScene', this.handleSceneChange.bind(this));
+    globalEmitter.removeListener(
+      'changeScene',
+      this.handleSceneChange.bind(this)
+    );
   }
 }
