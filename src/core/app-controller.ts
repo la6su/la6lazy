@@ -3,6 +3,7 @@ import { createCRTLoader } from '../preloader/crt-bootstrap';
 import { createUnlocker } from '../ui/unlocker';
 import { DOMUtils } from '../utils/dom';
 import { MemoryMonitor } from '../utils/memory';
+import { WebGLErrorBoundary } from '../utils/error-boundary';
 import { AppState, AppPhase } from './app-state';
 import { ProgressController } from './progress-controller';
 import { SceneManager } from '../scenes/scene-manager';
@@ -29,6 +30,23 @@ export class AppController {
     this.globalEmitter = globalEmitter;
     this.appState = new AppState();
     this.progressController = new ProgressController();
+
+    // Initialize error boundary
+    const errorBoundary = WebGLErrorBoundary.getInstance();
+    errorBoundary.addHandler((error) => {
+      console.error('Application error:', error);
+      this.handleCriticalError(error);
+    });
+
+    // Check WebGL support early
+    if (!WebGLErrorBoundary.isWebGLSupported()) {
+      errorBoundary.handleError(
+        'WebGL is not supported in this browser',
+        'WebGL Support Check',
+        false
+      );
+      return;
+    }
 
     // Initialize DOM elements
     this.mainCanvas = DOMUtils.getElementById('main-canvas', HTMLCanvasElement)!;
@@ -217,6 +235,68 @@ export class AppController {
    */
   getSceneManager(): SceneManager | null {
     return this.sceneManager;
+  }
+
+  /**
+   * Handle critical application errors
+   */
+  private handleCriticalError(error: any): void {
+    // Set error state
+    this.appState.setPhase(AppPhase.HTML_CSS); // Fallback to basic state
+
+    // Hide loading elements
+    if (this.crtCanvas) {
+      this.crtCanvas.style.display = 'none';
+    }
+    if (this.unlockerEl) {
+      this.unlockerEl.style.display = 'none';
+    }
+
+    // Show fallback content or error message
+    this.showFallbackUI(error);
+  }
+
+  /**
+   * Show fallback UI when WebGL fails
+   */
+  private showFallbackUI(error: any): void {
+    const fallback = document.createElement('div');
+    fallback.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #000;
+      color: #0f0;
+      font-family: monospace;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      padding: 20px;
+      box-sizing: border-box;
+    `;
+
+    fallback.innerHTML = `
+      <h1>ORE v5 Lazy Example</h1>
+      <p>WebGL initialization failed.</p>
+      <p>Error: ${error.message || 'Unknown error'}</p>
+      <p>Please check your browser compatibility or try refreshing the page.</p>
+      <button onclick="location.reload()" style="
+        padding: 10px 20px;
+        background: #0f0;
+        color: #000;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        margin-top: 20px;
+        font-family: monospace;
+      ">Retry</button>
+    `;
+
+    document.body.appendChild(fallback);
   }
 
   /**

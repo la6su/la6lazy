@@ -6,6 +6,7 @@ import {
   PointLight,
 } from 'three';
 import { BaseLayer } from 'ore-three';
+import { AssetManager } from '../utils/asset-manager';
 
 interface DemoLayerParam {
   name: string;
@@ -16,15 +17,18 @@ export class DemoLayer extends BaseLayer {
   sphere?: Mesh;
   lights: any[] = [];
   readyAnimate: boolean = false;
+  private assetManager: AssetManager;
 
   constructor(param: DemoLayerParam) {
     super({
       name: param.name || 'DemoLayer',
       canvas: param.canvas,
     });
+
+    this.assetManager = AssetManager.getInstance();
   }
 
-  onBind() {
+  async onBind() {
     this.camera.position.set(0, 0, 6);
     this.camera.aspect = this.info.size.canvasAspectRatio;
     this.camera.updateProjectionMatrix();
