@@ -229,7 +229,7 @@ export class AppController {
     }
 
     if (this.sceneManager) {
-      // Dispose logic will be improved in next step
+      this.sceneManager.dispose();
       this.sceneManager = null;
     }
 
