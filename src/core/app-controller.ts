@@ -72,12 +72,7 @@ export class AppController {
     return this.appState;
   }
 
-  /**
-   * Test fallback UI (temporary method for testing)
-   */
-  testFallbackUI(): void {
-    this.lifecycleManager.testFallbackUI();
-  }
+
 
   /**
    * Dispose resources
