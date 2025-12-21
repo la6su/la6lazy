@@ -5,6 +5,7 @@ interface Preloader {
   setScanlinePhase(value: number): void;
   setMode(value: number): void;
   stop(): void;
+  destroy(): void;
 }
 
 let preloader: Preloader | null = null;
@@ -37,7 +38,7 @@ self.onmessage = (e: MessageEvent) => {
     }
 
     case 'stop': {
-      preloader?.stop?.();
+      preloader?.destroy?.();
       self.close();
       break;
     }

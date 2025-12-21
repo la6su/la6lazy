@@ -1,5 +1,6 @@
 import crtVert from './shaders/crt.vs?raw';
 import crtFrag from './shaders/crt.fs?raw';
+import { getShaderSource } from '../utils/shader';
 
 export function createGLPreloader(canvas: HTMLCanvasElement) {
   // Try WebGL2 first, fallback to WebGL1
@@ -99,6 +100,30 @@ export function createGLPreloader(canvas: HTMLCanvasElement) {
     },
     stop() {
       stopped = true;
+    },
+    destroy() {
+      stopped = true;
+
+      // Clean up WebGL resources
+      if (gl && program) {
+        // Delete shaders
+        if (vs) gl.deleteShader(vs);
+        if (fs) gl.deleteShader(fs);
+
+        // Delete program
+        gl.deleteProgram(program);
+
+        // Clear buffers and textures if any
+        // Note: In this simple case, we don't have VBOs or textures to clean up
+
+        // Reset state
+        gl.bindBuffer(gl.ARRAY_BUFFER, null);
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+        gl.useProgram(null);
+      }
+
+      // Clear references
+      // Note: preloader reference cleanup handled by caller
     },
   };
 }

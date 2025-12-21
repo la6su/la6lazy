@@ -89,11 +89,11 @@ export async function createCRTLoader(options: {
 
     finish() {
       canvas.style.opacity = '0';
-      preloader.stop?.();
+      preloader.destroy?.();
     },
 
     destroy() {
-      preloader.stop?.();
+      preloader.destroy?.();
     },
 
     mode: 'main',

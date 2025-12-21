@@ -2,6 +2,7 @@ import { createCRTLoader } from './preloader/crt-bootstrap';
 import { createUnlocker } from './ui/unlocker';
 import EventEmitter from 'wolfy87-eventemitter';
 import { DOMUtils } from './utils/dom';
+import { MemoryMonitor } from './utils/memory';
 
 // -----------------------------------------------------------------------------
 // APPLICATION PHASES
@@ -131,7 +132,9 @@ function setLoadProgress(value: number) {
 }
 
 function startProgressSmoothing() {
-  if (rafId !== null) return;
+  if (rafId !== null) {
+    cancelAnimationFrame(rafId);
+  }
 
   function tick() {
     visualProgress += (targetProgress - visualProgress) * 0.18;
@@ -209,15 +212,33 @@ async function startSceneLoading() {
   setLoadProgress(0.8);
 
   const controller = new Controller({
-    pointerEventElement: mainCanvas,
+    pointerEventElement: mainCanvas!,
   });
 
   controller.addLayer(
     new HeroLayer({
       name: 'HeroLayer',
-      canvas: mainCanvas,
+      canvas: mainCanvas!,
     })
   );
 
   setLoadProgress(1);
 }
+
+// -----------------------------------------------------------------------------
+// MEMORY MONITORING (dev only)
+// -----------------------------------------------------------------------------
+if (import.meta.env.DEV && MemoryMonitor.isSupported()) {
+  const memoryMonitor = MemoryMonitor.getInstance();
+  memoryMonitor.startMonitoring(10000); // Check every 10 seconds
+
+  memoryMonitor.onMemoryUpdate((info) => {
+    console.log(`Memory: ${formatBytes(info.usedJSHeapSize)} / ${formatBytes(info.jsHeapSizeLimit)}`);
+  });
+
+  // Export for debugging
+  (window as any).memoryMonitor = memoryMonitor;
+}
+
+// Import formatBytes for console logging
+import { formatBytes } from './utils/memory';
