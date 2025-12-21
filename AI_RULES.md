@@ -120,10 +120,53 @@ const createOreController = async (mainCanvas: HTMLCanvasElement) => {
   return new Controller({ pointerEventElement: mainCanvas });
 };
 
-const loadHeroScene = async (progressController: ProgressController) => {
-  const heroModule = await import('../../scenes/hero-layer');
-  progressController.setTargetProgress(0.7);
-  return { hero: heroModule.HeroLayer };
+const loadSceneModules = async (sceneNames: string[], progressController: ProgressController) => {
+  const sceneClasses: Record<string, any> = {};
+  const totalScenes = sceneNames.length;
+
+  for (let i = 0; i < totalScenes; i++) {
+    const sceneName = sceneNames[i];
+    let modulePath: string;
+    let className: string;
+
+    // Scene registry
+    switch (sceneName) {
+      case 'hero':
+        modulePath = '../../scenes/hero-layer';
+        className = 'HeroLayer';
+        break;
+      case 'demo':
+        modulePath = '../../scenes/demo-layer';
+        className = 'DemoLayer';
+        break;
+      default:
+        throw new Error(`Unknown scene: ${sceneName}`);
+    }
+
+    const module = await import(modulePath);
+    sceneClasses[sceneName] = module[className];
+
+    // Update progress incrementally
+    progressController.setTargetProgress(0.3 + (0.4 * (i + 1) / totalScenes));
+  }
+
+  return sceneClasses;
+};
+
+const createAndInitializeScene = async (
+  controller: any,
+  sceneClasses: Record<string, any>,
+  canvas: HTMLCanvasElement,
+  sceneName: string
+) => {
+  const SceneClass = sceneClasses[sceneName];
+  if (!SceneClass) {
+    throw new Error(`Scene class not found: ${sceneName}`);
+  }
+
+  const scene = new SceneClass({ name: sceneName, canvas });
+  controller.addLayer(scene);
+  return scene;
 };
 ```
 
@@ -319,6 +362,7 @@ Scene code must:
 - ❌ never touch the DOM
 - ❌ never create / destroy canvas
 - ❌ never manage RAF
+- ❌ **never implement `dispose()` or `onResize()` methods** - ore-three v5 manages lifecycle automatically, implementing these breaks rendering
 - ✅ only control Three.js objects
 - ✅ rely on ore-three lifecycle
 
@@ -335,14 +379,50 @@ const createOreController = async (mainCanvas: HTMLCanvasElement) => {
   return new Controller({ pointerEventElement: mainCanvas });
 };
 
-const loadHeroScene = async (progressController: ProgressController) => {
-  const heroModule = await import('../../scenes/hero-layer');
-  progressController.setTargetProgress(0.7);
-  return { hero: heroModule.HeroLayer };
+const loadSceneModules = async (sceneNames: string[], progressController: ProgressController) => {
+  const sceneClasses: Record<string, any> = {};
+  const totalScenes = sceneNames.length;
+
+  for (let i = 0; i < totalScenes; i++) {
+    const sceneName = sceneNames[i];
+    let modulePath: string;
+    let className: string;
+
+    // Scene registry
+    switch (sceneName) {
+      case 'hero':
+        modulePath = '../../scenes/hero-layer';
+        className = 'HeroLayer';
+        break;
+      case 'demo':
+        modulePath = '../../scenes/demo-layer';
+        className = 'DemoLayer';
+        break;
+      default:
+        throw new Error(`Unknown scene: ${sceneName}`);
+    }
+
+    const module = await import(modulePath);
+    sceneClasses[sceneName] = module[className];
+
+    // Update progress incrementally
+    progressController.setTargetProgress(0.3 + (0.4 * (i + 1) / totalScenes));
+  }
+
+  return sceneClasses;
 };
 
-const initializeScene = async (controller, sceneClasses, canvas, sceneName) => {
+const createAndInitializeScene = async (
+  controller: any,
+  sceneClasses: Record<string, any>,
+  canvas: HTMLCanvasElement,
+  sceneName: string
+) => {
   const SceneClass = sceneClasses[sceneName];
+  if (!SceneClass) {
+    throw new Error(`Scene class not found: ${sceneName}`);
+  }
+
   const scene = new SceneClass({ name: sceneName, canvas });
   controller.addLayer(scene);
   return scene;
@@ -353,8 +433,8 @@ private async startSceneLoading(): Promise<void> {
   this.controller = await createOreController(this.mainCanvas);
   this.progressController.setTargetProgress(0.3);
 
-  this.sceneClasses = await loadHeroScene(this.progressController);
-  await initializeScene(this.controller, this.sceneClasses, this.mainCanvas, 'hero');
+  this.sceneClasses = await loadSceneModules(['hero'], this.progressController);
+  await createAndInitializeScene(this.controller, this.sceneClasses, this.mainCanvas, 'hero');
 
   this.progressController.setTargetProgress(1);
   exportToGlobal(this.controller, this.switchToScene.bind(this));
