@@ -4,6 +4,7 @@ import { createUnlocker } from '../ui/unlocker';
 import { DOMUtils } from '../utils/dom';
 import { MemoryMonitor } from '../utils/memory';
 import { WebGLErrorBoundary } from '../utils/error-boundary';
+import { PerformanceMonitor, performanceUtils } from '../utils/performance-monitor';
 import { AppState, AppPhase } from './app-state';
 import { ProgressController } from './progress-controller';
 
@@ -81,6 +82,7 @@ export class AppController {
       // Now show unlocker
       this.initUnlocker();
       this.initMemoryMonitor();
+      this.initPerformanceMonitor();
     } catch (error) {
       console.error('Failed to initialize app:', error);
       throw error;
@@ -250,6 +252,31 @@ export class AppController {
   }
 
   /**
+   * Initialize performance monitoring
+   */
+  private initPerformanceMonitor(): void {
+    const perfMonitor = PerformanceMonitor.getInstance();
+    perfMonitor.startMonitoring(2000); // Update every 2 seconds
+
+    perfMonitor.on('metricsUpdate', (metrics) => {
+      console.log(
+        `Performance: ${metrics.fps} FPS, ${metrics.frameTime.toFixed(2)}ms/frame${
+          metrics.memoryUsage ?
+            `, Memory: ${(metrics.memoryUsage.used / 1024 / 1024).toFixed(1)}MB / ${(metrics.memoryUsage.limit / 1024 / 1024).toFixed(1)}MB` :
+            ''
+        }`
+      );
+    });
+
+    // Export for global access
+    (window as any).performanceMonitor = perfMonitor;
+
+    // Check WebGL performance
+    const isPerformant = PerformanceMonitor.isWebGLPerformant(this.mainCanvas);
+    console.log(`WebGL performance check: ${isPerformant ? 'Good' : 'Limited'}`);
+  }
+
+  /**
    * Switch to scene by name
    */
   async switchToScene(sceneName: string): Promise<void> {
@@ -316,22 +343,91 @@ export class AppController {
   }
 
   /**
-   * Handle critical application errors
+   * Handle critical application errors with recovery strategies
    */
   private handleCriticalError(error: any): void {
-    // Set error state
-    this.appState.setPhase(AppPhase.HTML_CSS); // Fallback to basic state
+    const errorContext = `Phase: ${this.appState.getCurrentPhase()}, Scene: ${this.currentSceneName || 'none'}`;
 
-    // Hide loading elements
-    if (this.crtCanvas) {
-      this.crtCanvas.style.display = 'none';
+    console.error('Critical application error:', error);
+    console.error('Error context:', errorContext);
+
+    // Try recovery based on current phase
+    const recoveryAttempted = this.attemptRecovery(error);
+
+    if (!recoveryAttempted) {
+      // Fallback to basic state
+      this.appState.setPhase(AppPhase.HTML_CSS);
+
+      // Clean up resources
+      this.dispose();
+
+      // Hide loading elements
+      if (this.crtCanvas) {
+        this.crtCanvas.style.display = 'none';
+      }
+      if (this.unlockerEl) {
+        this.unlockerEl.style.display = 'none';
+      }
+
+      // Show fallback content or error message
+      this.showFallbackUI(error);
     }
-    if (this.unlockerEl) {
-      this.unlockerEl.style.display = 'none';
+  }
+
+  /**
+   * Attempt to recover from error based on current state
+   */
+  private attemptRecovery(error: any): boolean {
+    const currentPhase = this.appState.getCurrentPhase();
+
+    try {
+      switch (currentPhase) {
+        case AppPhase.CRT_POWER_ON:
+          // If CRT fails, try to skip to unlocker
+          console.warn('CRT failed, attempting to skip to unlocker phase');
+          this.appState.setPhase(AppPhase.IDLE);
+          this.initUnlocker();
+          return true;
+
+        case AppPhase.SCANLINE_LOADER:
+          // If scene loading fails, try to restart loading
+          console.warn('Scene loading failed, attempting restart');
+          this.restartSceneLoading();
+          return true;
+
+        case AppPhase.SCENE:
+          // If scene fails, try to switch to hero scene
+          if (this.currentSceneName !== 'hero' && this.sceneClasses['hero']) {
+            console.warn('Scene failed, attempting to switch to hero scene');
+            this.switchToScene('hero').catch(err => {
+              console.error('Hero scene fallback failed:', err);
+            });
+            return true;
+          }
+          break;
+
+        default:
+          // For other phases, no recovery possible
+          break;
+      }
+    } catch (recoveryError) {
+      console.error('Recovery attempt failed:', recoveryError);
     }
 
-    // Show fallback content or error message
-    this.showFallbackUI(error);
+    return false;
+  }
+
+  /**
+   * Restart scene loading pipeline
+   */
+  private async restartSceneLoading(): Promise<void> {
+    try {
+      console.log('Restarting scene loading...');
+      await this.startSceneLoading();
+    } catch (error) {
+      console.error('Scene loading restart failed:', error);
+      // Will fall back to error UI
+    }
   }
 
   /**
