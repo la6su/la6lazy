@@ -1,5 +1,3 @@
-import { createGLPreloader } from './shader-preload';
-
 function isSafari() {
   return /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
 }
@@ -72,6 +70,8 @@ export async function createCRTLoader(options: {
   glCanvas.width = width * dpr;
   glCanvas.height = height * dpr;
 
+  // Lazy load WebGL preloader
+  const { createGLPreloader } = await import('./shader-preload');
   const preloader = createGLPreloader(glCanvas);
 
   return {

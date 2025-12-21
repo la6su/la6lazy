@@ -1,5 +1,4 @@
-import crtVert from './shaders/crt.vs?raw';
-import crtFrag from './shaders/crt.fs?raw';
+import { shaders } from './shaders';
 // import { getShaderSource } from '../utils/shader'; // Not used in production
 
 export function createGLPreloader(canvas: HTMLCanvasElement) {
@@ -23,10 +22,10 @@ export function createGLPreloader(canvas: HTMLCanvasElement) {
   }
 
   // ---------- VERTEX ----------
-  const vsSrc = crtVert;
+  const vsSrc = shaders.crt.vertex;
 
   // ---------- FRAGMENT ----------
-  const fsSrc = crtFrag;
+  const fsSrc = shaders.crt.fragment;
 
   // ---------- Compile ----------
   function compile(type: number, source: string) {
