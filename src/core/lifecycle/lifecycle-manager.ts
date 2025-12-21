@@ -5,6 +5,37 @@ import { ErrorHandler } from '../services/error-handler';
 import { MemoryMonitorService } from '../services/memory-monitor';
 
 /**
+ * Pure functions for functional composition
+ */
+const createOreController = async (mainCanvas: HTMLCanvasElement) => {
+  const { Controller } = await import('ore-three');
+  return new Controller({ pointerEventElement: mainCanvas });
+};
+
+const loadHeroScene = async (progressController: ProgressController) => {
+  const heroModule = await import('../../scenes/hero-layer');
+  progressController.setTargetProgress(0.7);
+  return { hero: heroModule.HeroLayer };
+};
+
+const initializeScene = async (
+  controller: any,
+  sceneClasses: Record<string, any>,
+  canvas: HTMLCanvasElement,
+  sceneName: string
+) => {
+  const SceneClass = sceneClasses[sceneName];
+  const scene = new SceneClass({ name: sceneName, canvas });
+  controller.addLayer(scene);
+  return scene;
+};
+
+const exportToGlobal = (controller: any, switchToSceneFn: Function) => {
+  (window as any).controller = controller;
+  (window as any).switchToScene = switchToSceneFn;
+};
+
+/**
  * Configuration interfaces for better organization
  */
 export interface EventsConfig {
@@ -131,49 +162,25 @@ export class LifecycleManager {
   }
 
   /**
-   * Start scene loading pipeline
+   * Start scene loading pipeline using functional composition
    */
   private async startSceneLoading(): Promise<void> {
-    // Load ore-three (static import for reliability)
-    const { Controller } = await import('ore-three');
+    // Create ore-three controller
+    this.controller = await createOreController(this.mainCanvas);
     this.progressController.setTargetProgress(0.3);
 
-    this.controller = new Controller({
-      pointerEventElement: this.mainCanvas,
-    });
+    // Load hero scene
+    this.sceneClasses = await loadHeroScene(this.progressController);
 
-    // Load hero scene (initial scene)
-    const heroModule = await this.loadWithProgress(
-      '../../scenes/hero-layer',
-      0.7
-    );
-    const { HeroLayer } = heroModule;
+    // Initialize initial scene
+    await initializeScene(this.controller, this.sceneClasses, this.mainCanvas, 'hero');
 
-    this.sceneClasses = {
-      hero: HeroLayer,
-      // demo will be loaded lazily on first access
-    };
-
-    // Load initial scene
-    await this.switchToScene('hero');
+    // Finalize
     this.progressController.setTargetProgress(1);
-
-    // Export for global access
-    (window as any).controller = this.controller;
-    (window as any).switchToScene = this.switchToScene.bind(this);
+    exportToGlobal(this.controller, this.switchToScene.bind(this));
   }
 
-  /**
-   * Load module with progress tracking
-   */
-  private async loadWithProgress(
-    modulePath: string,
-    targetProgress: number
-  ): Promise<any> {
-    const module = await import(modulePath);
-    this.progressController.setTargetProgress(targetProgress);
-    return module;
-  }
+
 
   /**
    * Wait for scene to be ready and finish CRT
