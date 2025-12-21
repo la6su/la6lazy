@@ -193,7 +193,7 @@ export function createGLPreloader(canvas: HTMLCanvasElement) {
     gl!.uniform1f(uMode, mode);
     gl!.drawArrays(gl!.TRIANGLES, 0, 3);
     requestAnimationFrame(frame);
-    console.log('scanlinePhase', scanlinePhase);
+
   }
 
   frame();
