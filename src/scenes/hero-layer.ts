@@ -1,6 +1,5 @@
 import { Mesh, BoxGeometry, MeshBasicMaterial, AmbientLight } from 'three';
 import { BaseLayer } from 'ore-three';
-import { AssetManager } from '../utils/asset-manager';
 
 interface HeroLayerParam {
   name: string;
@@ -10,15 +9,12 @@ interface HeroLayerParam {
 export class HeroLayer extends BaseLayer {
   box?: Mesh;
   readyAnimate: boolean = false;
-  private assetManager: AssetManager;
 
   constructor(param: HeroLayerParam) {
     super({
       name: param.name || 'HeroLayer',
       canvas: param.canvas,
     });
-
-    this.assetManager = AssetManager.getInstance();
   }
 
   async onBind() {

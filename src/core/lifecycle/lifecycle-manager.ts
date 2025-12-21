@@ -216,11 +216,19 @@ export class LifecycleManager {
     this.controller = await createOreController(this.mainCanvas);
     this.progressController.setTargetProgress(0.3);
 
-    // Load multiple scene modules for lazy loading
-    this.sceneClasses = await loadSceneModules(['hero', 'demo'], this.progressController);
+    // Load scene modules
+    this.sceneClasses = await loadSceneModules(
+      ['hero'],
+      this.progressController
+    );
 
     // Initialize initial scene
-    await createAndInitializeScene(this.controller, this.sceneClasses, this.mainCanvas, 'hero');
+    await createAndInitializeScene(
+      this.controller,
+      this.sceneClasses,
+      this.mainCanvas,
+      'hero'
+    );
 
     // Finalize
     this.progressController.setTargetProgress(1);
