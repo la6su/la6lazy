@@ -12,19 +12,53 @@ const createOreController = async (mainCanvas: HTMLCanvasElement) => {
   return new Controller({ pointerEventElement: mainCanvas });
 };
 
-const loadHeroScene = async (progressController: ProgressController) => {
-  const heroModule = await import('../../scenes/hero-layer');
-  progressController.setTargetProgress(0.7);
-  return { hero: heroModule.HeroLayer };
+const loadSceneModules = async (
+  sceneNames: string[],
+  progressController: ProgressController
+) => {
+  const sceneClasses: Record<string, any> = {};
+  const totalScenes = sceneNames.length;
+
+  for (let i = 0; i < totalScenes; i++) {
+    const sceneName = sceneNames[i];
+    let modulePath: string;
+    let className: string;
+
+    // Scene registry - can be extended for more scenes
+    switch (sceneName) {
+      case 'hero':
+        modulePath = '../../scenes/hero-layer';
+        className = 'HeroLayer';
+        break;
+      case 'demo':
+        modulePath = '../../scenes/demo-layer';
+        className = 'DemoLayer';
+        break;
+      default:
+        throw new Error(`Unknown scene: ${sceneName}`);
+    }
+
+    const module = await import(modulePath);
+    sceneClasses[sceneName] = module[className];
+
+    // Update progress incrementally
+    progressController.setTargetProgress(0.3 + (0.4 * (i + 1)) / totalScenes);
+  }
+
+  return sceneClasses;
 };
 
-const initializeScene = async (
+const createAndInitializeScene = async (
   controller: any,
   sceneClasses: Record<string, any>,
   canvas: HTMLCanvasElement,
   sceneName: string
 ) => {
   const SceneClass = sceneClasses[sceneName];
+  if (!SceneClass) {
+    throw new Error(`Scene class not found: ${sceneName}`);
+  }
+
   const scene = new SceneClass({ name: sceneName, canvas });
   controller.addLayer(scene);
   return scene;
@@ -36,19 +70,16 @@ const exportToGlobal = (controller: any, switchToSceneFn: Function) => {
 };
 
 // Pure functions for scene management
-const cleanupCurrentScene = (controller: any, currentSceneName: string | null) => {
+const cleanupCurrentScene = (
+  controller: any,
+  currentSceneName: string | null
+) => {
   if (!currentSceneName) return;
   const currentLayer = controller.getLayer(currentSceneName);
   if (currentLayer && typeof currentLayer.dispose === 'function') {
     currentLayer.dispose();
   }
   controller.removeLayer(currentSceneName);
-};
-
-const createAndAddScene = (controller: any, SceneClass: any, sceneName: string, canvas: HTMLCanvasElement) => {
-  const scene = new SceneClass({ name: sceneName, canvas });
-  controller.addLayer(scene);
-  return scene;
 };
 
 /**
@@ -185,11 +216,19 @@ export class LifecycleManager {
     this.controller = await createOreController(this.mainCanvas);
     this.progressController.setTargetProgress(0.3);
 
-    // Load hero scene
-    this.sceneClasses = await loadHeroScene(this.progressController);
+    // Load scene modules
+    this.sceneClasses = await loadSceneModules(
+      ['hero'],
+      this.progressController
+    );
 
     // Initialize initial scene
-    await initializeScene(this.controller, this.sceneClasses, this.mainCanvas, 'hero');
+    await createAndInitializeScene(
+      this.controller,
+      this.sceneClasses,
+      this.mainCanvas,
+      'hero'
+    );
 
     // Finalize
     this.progressController.setTargetProgress(1);
@@ -236,9 +275,13 @@ export class LifecycleManager {
     // Clean up current scene
     cleanupCurrentScene(this.controller, this.currentSceneName);
 
-    // Create and add new scene
-    const SceneClass = this.sceneClasses[sceneName];
-    const scene = createAndAddScene(this.controller, SceneClass, sceneName, this.mainCanvas);
+    // Create and initialize new scene
+    const scene = await createAndInitializeScene(
+      this.controller,
+      this.sceneClasses,
+      this.mainCanvas,
+      sceneName
+    );
 
     this.currentSceneName = sceneName;
     this.globalEmitter.emit('sceneChanged', { sceneName, layer: scene });

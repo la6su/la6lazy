@@ -2,7 +2,10 @@ import EventEmitter from 'wolfy87-eventemitter';
 import { DOMUtils } from '../utils/dom';
 import { AppState } from './app-state';
 import { ProgressController } from './progress-controller';
-import { LifecycleManager, LifecycleManagerConfig } from './lifecycle/lifecycle-manager';
+import {
+  LifecycleManager,
+  LifecycleManagerConfig,
+} from './lifecycle/lifecycle-manager';
 
 /**
  * Main application controller - simplified facade using composition

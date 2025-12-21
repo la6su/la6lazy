@@ -82,6 +82,4 @@ export class ErrorHandler {
 
     document.body.appendChild(fallback);
   }
-
-
 }
