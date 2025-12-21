@@ -2,13 +2,22 @@ import crtVert from './shaders/crt.vs?raw';
 import crtFrag from './shaders/crt.fs?raw';
 
 export function createGLPreloader(canvas: HTMLCanvasElement) {
-  const gl = canvas.getContext('webgl2', {
+  // Try WebGL2 first, fallback to WebGL1
+  let gl = canvas.getContext('webgl2', {
     alpha: false,
     premultipliedAlpha: false,
-  });
+  }) as WebGL2RenderingContext | WebGLRenderingContext | null;
 
   if (!gl) {
-    console.error('WebGL2 not supported');
+    console.warn('WebGL2 not supported, trying WebGL1');
+    gl = canvas.getContext('webgl', {
+      alpha: false,
+      premultipliedAlpha: false,
+    }) as WebGLRenderingContext | null;
+  }
+
+  if (!gl) {
+    console.error('Neither WebGL2 nor WebGL1 supported');
     return { setProgress() {}, setScanlinePhase() {}, setMode() {}, stop() {} };
   }
 

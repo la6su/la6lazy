@@ -28,77 +28,21 @@ export function createUnlocker(
 
   const max = track.clientWidth - thumb.clientWidth;
 
-  thumb.addEventListener('pointerdown', (e: PointerEvent) => {
-    e.preventDefault();
+  // Unified drag start handler
+  const startDrag = (pageX: number) => {
     dragging = true;
-    startX = e.pageX; // Используем pageX для точности
-    try {
-      thumb.setPointerCapture(e.pointerId);
-    } catch (error) {
-      // setPointerCapture может не работать на некоторых мобильных
-    }
-
+    startX = pageX;
     if (!started) {
       started = true;
-      onStart?.(); // 🔥 КЛЮЧЕВОЕ
-    }
-  });
-
-  const handlePointerMove = (e: PointerEvent) => {
-    if (!dragging) return;
-    e.preventDefault(); // Предотвращаем скролл
-
-    const dx = e.pageX - startX;
-    progress = Math.min(1, Math.max(0, dx / max));
-
-    thumb.style.transform = `translateX(${progress * max}px)`;
-    fill.style.width = `${progress * 100}%`;
-
-    onProgress?.(progress); // 🔥
-  };
-
-  const handlePointerUp = () => {
-    if (!dragging) return;
-    dragging = false;
-
-    if (progress > 0.95) {
-      onUnlock?.();
-      el.remove();
-      // Убираем слушатели после удаления элемента
-      window.removeEventListener('pointermove', handlePointerMove);
-      window.removeEventListener('pointerup', handlePointerUp);
-    } else {
-      progress = 0;
-      thumb.style.transform = '';
-      fill.style.width = '0%';
-      onProgress?.(0);
+      onStart?.();
     }
   };
 
-  window.addEventListener('pointermove', handlePointerMove);
-  window.addEventListener('pointerup', handlePointerUp);
-
-  // Добавляем touch события как fallback для лучшей мобильной поддержки
-  thumb.addEventListener(
-    'touchstart',
-    (e: TouchEvent) => {
-      e.preventDefault();
-      dragging = true;
-      startX = e.touches[0].pageX;
-
-      if (!started) {
-        started = true;
-        onStart?.();
-      }
-    },
-    { passive: false }
-  );
-
-  const handleTouchMove = (e: TouchEvent) => {
+  // Unified move handler
+  const handleMove = (pageX: number) => {
     if (!dragging) return;
-    e.preventDefault();
 
-    const dx = e.touches[0].pageX - startX;
+    const dx = pageX - startX;
     progress = Math.min(1, Math.max(0, dx / max));
 
     thumb.style.transform = `translateX(${progress * max}px)`;
@@ -107,15 +51,14 @@ export function createUnlocker(
     onProgress?.(progress);
   };
 
-  const handleTouchEnd = () => {
+  // Unified end handler
+  const handleEnd = () => {
     if (!dragging) return;
     dragging = false;
 
     if (progress > 0.95) {
       onUnlock?.();
       el.remove();
-      window.removeEventListener('touchmove', handleTouchMove);
-      window.removeEventListener('touchend', handleTouchEnd);
     } else {
       progress = 0;
       thumb.style.transform = '';
@@ -123,6 +66,44 @@ export function createUnlocker(
       onProgress?.(0);
     }
   };
+
+  // Pointer events
+  thumb.addEventListener('pointerdown', (e: PointerEvent) => {
+    e.preventDefault();
+    startDrag(e.pageX);
+    try {
+      thumb.setPointerCapture(e.pointerId);
+    } catch (error) {
+      // setPointerCapture may not work on some mobile devices
+    }
+  });
+
+  const handlePointerMove = (e: PointerEvent) => {
+    e.preventDefault();
+    handleMove(e.pageX);
+  };
+
+  const handlePointerUp = (e: PointerEvent) => handleEnd();
+
+  window.addEventListener('pointermove', handlePointerMove);
+  window.addEventListener('pointerup', handlePointerUp);
+
+  // Touch events as fallback for better mobile support
+  thumb.addEventListener(
+    'touchstart',
+    (e: TouchEvent) => {
+      e.preventDefault();
+      startDrag(e.touches[0].pageX);
+    },
+    { passive: false }
+  );
+
+  const handleTouchMove = (e: TouchEvent) => {
+    e.preventDefault();
+    handleMove(e.touches[0].pageX);
+  };
+
+  const handleTouchEnd = (e: TouchEvent) => handleEnd();
 
   window.addEventListener('touchmove', handleTouchMove, { passive: false });
   window.addEventListener('touchend', handleTouchEnd);

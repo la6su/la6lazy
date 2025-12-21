@@ -19,28 +19,38 @@ const crtCanvas = crtCanvasEl;
 // STATE
 // -----------------------------------------------------------------------------
 let loadingStarted = false;
+let crt: Awaited<ReturnType<typeof createCRTLoader>> | null = null;
 
 // -----------------------------------------------------------------------------
 // INIT CRT
 // -----------------------------------------------------------------------------
-const crt = await createCRTLoader({
-  canvas: crtCanvas,
-  dpr: window.devicePixelRatio,
-});
+try {
+  crt = await createCRTLoader({
+    canvas: crtCanvas,
+    dpr: window.devicePixelRatio,
+  });
+} catch (error) {
+  console.error('Failed to initialize CRT loader:', error);
+  // Graceful degradation: hide CRT canvas and proceed with basic scene
+  crtCanvas.style.display = 'none';
+  crt = null;
+}
 
 // -----------------------------------------------------------------------------
 // CRT POWER-ON (fixed frames, no easing)
 // -----------------------------------------------------------------------------
 async function playCRTPowerOn(frames = 20) {
+  if (!crt) return; // Skip if CRT failed to initialize
+
   let frame = 0;
 
-  crt.setMode('boot');
-  crt.setProgress(0);
+  crt!.setMode('boot');
+  crt!.setProgress(0);
 
   return new Promise<void>(resolve => {
     function tick() {
       frame++;
-      crt.setProgress(Math.min(1, frame / frames));
+      crt!.setProgress(Math.min(1, frame / frames));
 
       if (frame < frames) {
         requestAnimationFrame(tick);
@@ -76,13 +86,13 @@ function startProgressSmoothing() {
 
   function tick() {
     visualProgress += (targetProgress - visualProgress) * 0.18;
-    crt.setProgress(visualProgress);
+    if (crt) crt.setProgress(visualProgress);
 
     if (Math.abs(targetProgress - visualProgress) > 0.002) {
       rafId = requestAnimationFrame(tick);
     } else {
       visualProgress = targetProgress;
-      crt.setProgress(visualProgress);
+      if (crt) crt.setProgress(visualProgress);
       rafId = null;
     }
   }
@@ -111,14 +121,14 @@ createUnlocker(unlockerEl, {
     loadingStarted = true;
     //  console.log('unlock start');
 
-    crt.setMode('scanline');
+    if (crt) crt.setMode('scanline');
 
     // стартуем загрузку, но не ждём
     void startSceneLoading();
   },
   onProgress: (p: any) => {
     // console.log('unlock progress', p);
-    crt.setScanlinePhase(p);
+    if (crt) crt.setScanlinePhase(p);
   },
 
   onUnlock: () => {
@@ -127,7 +137,7 @@ createUnlocker(unlockerEl, {
     // console.log('unlock end');
     const waitForFinish = () => {
       if (visualProgress > 0.995) {
-        crt.finish();
+        if (crt) crt.finish();
         crtCanvas.style.display = 'none';
       } else {
         requestAnimationFrame(waitForFinish);
